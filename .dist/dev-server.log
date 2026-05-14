@@ -847,3 +847,34 @@ Creating turbopack project { dir: 'C:\\Users\\User\\trainee-knowledge-assistant'
 
  GET /chat 200 in 1184ms (next.js: 242ms, proxy.ts: 447ms, application-code: 495ms)
  GET /chat 200 in 243ms (next.js: 95ms, proxy.ts: 73ms, application-code: 76ms)
+ GET /upload 200 in 96ms (next.js: 43ms, proxy.ts: 16ms, application-code: 36ms)
+Chroma RAG skipped: Error [ChromaConnectionError]: Failed to connect to chromadb. Make sure your server is running and try again. If you are running from a browser, make sure that your chromadb instance is configured to allow requests from the current origin using the CHROMA_SERVER_CORS_ALLOW_ORIGINS environment variable.
+    at async buildTxtRagContext (src\lib\rag\txt-rag.ts:47:22)
+    at async POST (src\app\api\chat\route.ts:82:23)
+  45 |
+  46 |   const docKey = hashDocKey(fileName, fullText);
+> 47 |   const collection = await getCollection(userKey);
+     |                      ^
+  48 |
+  49 |   try {
+  50 |     await collection.delete({ {
+  [cause]: TypeError: fetch failed
+      at async buildTxtRagContext (src\lib\rag\txt-rag.ts:47:22)
+      at async POST (src\app\api\chat\route.ts:82:23)
+    45 |
+    46 |   const docKey = hashDocKey(fileName, fullText);
+  > 47 |   const collection = await getCollection(userKey);
+       |                      ^
+    48 |
+    49 |   try {
+    50 |     await collection.delete({ {
+    [cause]: Error: getaddrinfo ENOTFOUND chromadb
+        at ignore-listed frames {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'chromadb'
+    }
+  }
+}
+ POST /api/chat 200 in 7.9s (next.js: 153ms, application-code: 7.7s)

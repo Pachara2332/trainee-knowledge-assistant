@@ -7,7 +7,7 @@ Knowledge Assistant is a protected AI chat web app for asking questions with opt
 - Framework: Next.js 16 App Router, React 19, TypeScript
 - Auth: NextAuth credentials provider, bcrypt password hashing
 - Database: PostgreSQL for user accounts
-- Vector DB: ChromaDB is included in Docker config, but full RAG retrieval is not finished yet
+- Vector DB: ChromaDB (RAG for TXT via chunk + Gemini embeddings + retrieval when `CHROMA_URL` is set)
 - AI: Google Gemini API
 - Infra: Docker Compose
 
@@ -73,7 +73,7 @@ GEMINI_MODEL=gemini-2.0-flash
 - [x] API key rotation via `GEMINI_API_KEYS`
 - [x] Docker Compose + healthcheck
 - [x] RAG with Vector DB (TXT: chunk + Gemini embeddings + Chroma retrieval; PDF unchanged)
-- [ ] Unit tests with coverage >= 40%
+- [x] Unit tests (`npm run test:coverage`, Vitest + V8; coverage thresholds on core `src/lib` modules listed in `vitest.config.ts`)
 
 ## Architecture
 
@@ -103,9 +103,9 @@ Recommended production storage:
 
 ## Known Issues
 
-- Full RAG is not implemented yet. ChromaDB is configured, but there is no chunking, embedding, or retrieval pipeline.
+- RAG over Chroma applies to **TXT** attachments when `CHROMA_URL` is set; **PDF** still uses inline PDF to Gemini (no vector indexing yet).
 - Chat history is stored in browser `localStorage`, not PostgreSQL, so it is device/browser-specific.
 - Uploaded files are used only for the current request and are not persisted.
 - PDF quality depends on Gemini's inline PDF handling; there is no separate PDF text extraction pipeline yet.
-- Unit tests and coverage are not added yet.
+- Unit tests use Vitest; coverage thresholds apply to the file globs in `vitest.config.ts` (not the entire monorepo).
 - In-memory rate limiting resets when the server restarts and is not shared across multiple instances.
