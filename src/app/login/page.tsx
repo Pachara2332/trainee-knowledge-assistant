@@ -17,31 +17,31 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0F172A] px-6 py-12 text-white">
+    <main className="min-h-screen overflow-hidden bg-[#18202B] px-6 py-12 text-white">
       <div className="pointer-events-none fixed inset-0 hero-noise opacity-70" />
       <div className="pointer-events-none fixed inset-0 hero-halftone opacity-35" />
       <section className="relative mx-auto grid min-h-[calc(100vh-6rem)] w-full max-w-6xl items-center gap-10 lg:grid-cols-[1fr_0.9fr]">
         <div>
           <Link
             href="/"
-            className="mb-8 inline-block border-4 border-[#111111] bg-[#FBB829] px-3 py-2 text-xl font-black uppercase tracking-tighter text-[#111111] shadow-[6px_6px_0_#B91C1C]"
+            className="mb-8 inline-block border-4 border-[#1C1B1A] bg-[#C89B3C] px-3 py-2 text-xl font-black uppercase tracking-tighter text-[#1C1B1A] shadow-[6px_6px_0_#8E3A3A]"
           >
             Knowledge Assistant
           </Link>
-          <p className="mb-4 inline-block -skew-x-6 bg-[#2986CC] px-3 py-1 text-sm font-black uppercase tracking-[0.28em] text-white shadow-[6px_6px_0_#111111]">
+          <p className="mb-4 inline-block -skew-x-6 bg-[#4F6F86] px-3 py-1 text-sm font-black uppercase tracking-[0.28em] text-white shadow-[6px_6px_0_#1C1B1A]">
             Console Access
           </p>
-          <h1 className="max-w-xl text-6xl font-black uppercase leading-[0.85] text-[#FBB829] drop-shadow-[8px_8px_0_#111111] sm:text-8xl">
+          <h1 className="max-w-xl text-6xl font-black uppercase leading-[0.85] text-[#C89B3C] drop-shadow-[8px_8px_0_#1C1B1A] sm:text-8xl">
             Back In The Fight
           </h1>
-          <p className="mt-6 max-w-lg text-lg font-semibold leading-8 text-[#E5E7EB]">
+          <p className="mt-6 max-w-lg text-lg font-semibold leading-8 text-[#E7E1D6]">
             Sign in to reopen your chat console and continue the knowledge
             mission.
           </p>
         </div>
 
         <form
-          className="relative flex flex-col gap-4 border-4 border-[#111111] bg-white p-6 text-[#111111] shadow-[16px_16px_0_#2986CC]"
+          className="relative flex flex-col gap-4 border-4 border-[#1C1B1A] bg-white p-6 text-[#1C1B1A] shadow-[16px_16px_0_#4F6F86]"
           action={async (formData) => {
             "use server";
 
@@ -60,7 +60,7 @@ export default async function LoginPage({
             }
           }}
         >
-          <div className="absolute -right-4 -top-4 bg-[#B91C1C] px-4 py-2 text-sm font-black uppercase tracking-widest text-white shadow-[6px_6px_0_#111111]">
+          <div className="absolute -right-4 -top-4 bg-[#8E3A3A] px-4 py-2 text-sm font-black uppercase tracking-widest text-white shadow-[6px_6px_0_#1C1B1A]">
             Login
           </div>
           <h2 className="text-4xl font-black uppercase leading-none">Identify</h2>
@@ -68,7 +68,7 @@ export default async function LoginPage({
           <label className="flex flex-col gap-2 text-sm font-black uppercase tracking-wider">
             Email
             <input
-              className="h-12 border-2 border-[#111111] bg-[#E5E7EB] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#2986CC]"
+              className="h-12 border-2 border-[#1C1B1A] bg-[#E7E1D6] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#4F6F86]"
               name="email"
               type="email"
               autoComplete="email"
@@ -79,7 +79,7 @@ export default async function LoginPage({
           <label className="flex flex-col gap-2 text-sm font-black uppercase tracking-wider">
             Password
             <input
-              className="h-12 border-2 border-[#111111] bg-[#E5E7EB] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#2986CC]"
+              className="h-12 border-2 border-[#1C1B1A] bg-[#E7E1D6] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#4F6F86]"
               name="password"
               type="password"
               autoComplete="current-password"
@@ -88,17 +88,17 @@ export default async function LoginPage({
           </label>
 
           {error ? (
-            <p className="border-2 border-[#B91C1C] bg-red-50 px-3 py-2 text-sm font-bold text-[#B91C1C]">
+            <p className="border-2 border-[#8E3A3A] bg-red-50 px-3 py-2 text-sm font-bold text-[#8E3A3A]">
               Invalid email or password.
             </p>
           ) : null}
 
-          <button className="mt-2 bg-[#FBB829] px-5 py-4 text-lg font-black uppercase tracking-wider text-[#111111] shadow-[8px_8px_0_#111111] transition hover:-translate-y-1 hover:translate-x-1 hover:shadow-[4px_4px_0_#111111]">
+          <button className="mt-2 bg-[#C89B3C] px-5 py-4 text-lg font-black uppercase tracking-wider text-[#1C1B1A] shadow-[8px_8px_0_#1C1B1A] transition hover:-translate-y-1 hover:translate-x-1 hover:shadow-[4px_4px_0_#1C1B1A]">
             Sign in
           </button>
           <p className="text-center text-sm font-semibold">
             Need clearance?{" "}
-            <Link className="font-black text-[#B91C1C] underline" href="/register">
+            <Link className="font-black text-[#8E3A3A] underline" href="/register">
               Create account
             </Link>
           </p>

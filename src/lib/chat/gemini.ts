@@ -19,7 +19,7 @@ type GeminiStreamChunk = {
 };
 
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
-const GEMINI_TIMEOUT_MS = 30_000;
+const GEMINI_TIMEOUT_MS = 12_000;
 
 export class GeminiError extends Error {
   constructor(message: string) {
@@ -28,7 +28,7 @@ export class GeminiError extends Error {
   }
 }
 
-function getGeminiApiKeys() {
+export function getGeminiApiKeys() {
   return [
     ...(process.env.GEMINI_API_KEYS ?? "")
       .split(",")
@@ -183,12 +183,12 @@ export async function streamGeminiAnswer({
     }
 
     buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
+    const events = buffer.split(/\r?\n\r?\n/);
     buffer = events.pop() ?? "";
 
     for (const event of events) {
       const data = event
-        .split("\n")
+        .split(/\r?\n/)
         .filter((line) => line.startsWith("data:"))
         .map((line) => line.slice(5).trim())
         .join("");

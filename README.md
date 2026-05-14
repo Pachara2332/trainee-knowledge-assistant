@@ -1,72 +1,38 @@
-# Trainee Knowledge Assistant
+# Knowledge Assistant
 
-AI chat web app สำหรับถามตอบความรู้จากไฟล์เอกสาร โดยมีระบบล็อกอิน, protected route, แนบไฟล์ TXT/PDF, streaming response, markdown rendering, citation, token usage counter และ conversation history
-
-## Description ย่อ
-
-Trainee Knowledge Assistant คือเว็บแชท AI สำหรับผู้ใช้ที่ต้องการอัปโหลดเอกสารแล้วถามตอบจากเนื้อหาในไฟล์อย่างรวดเร็ว พร้อมระบบยืนยันตัวตน การนับ token แบบราย session และคำตอบแบบ streaming ที่อ่านง่ายด้วย Markdown
+Knowledge Assistant is a protected AI chat web app for asking questions with optional TXT/PDF document context. It supports login, file validation, streaming Gemini responses, markdown rendering, citations, token counting, new chat, and local chat history.
 
 ## Tech Stack
 
-- Next.js 16 App Router
-- React 19
-- NextAuth credentials session
-- PostgreSQL สำหรับ user accounts
-- bcrypt สำหรับ hash password
-- Gemini API สำหรับ AI response
-- Docker Compose สำหรับ app/database services
+- Framework: Next.js 16 App Router, React 19, TypeScript
+- Auth: NextAuth credentials provider, bcrypt password hashing
+- Database: PostgreSQL for user accounts
+- Vector DB: ChromaDB is included in Docker config, but full RAG retrieval is not finished yet
+- AI: Google Gemini API
+- Infra: Docker Compose
 
-## Features
+## Setup & Run
 
-- Login และ protected `/chat` route
-- Register user พร้อม bcrypt password hashing
-- Upload TXT/PDF พร้อม validate type, size และ sanitize filename
-- Chat with AI ผ่าน Gemini streaming API
-- Chat with uploaded file context
-- Markdown rendering ในคำตอบ AI
-- Citation prompt ให้ AI อ้างอิงเอกสารด้วยชื่อไฟล์
-- Token usage counter ต่อ session
-- Conversation history เก็บใน browser localStorage
-- Rate limiting พื้นฐานที่ `/api/chat`
-- API key rotation ผ่าน `GEMINI_API_KEYS`
-- Security headers ผ่าน `next.config.ts`
-- Docker Compose และ healthcheck endpoint
+1-command setup:
 
-## Project Structure
-
-```txt
-src/
-  app/
-    api/
-      chat/route.ts          # Chat API route, auth guard, rate limit, SSE
-      auth/[...nextauth]/    # NextAuth handlers
-      health/route.ts        # Healthcheck endpoint
-    chat/
-      page.tsx               # Protected chat page
-      chat-client.tsx        # Chat state and streaming client
-    login/page.tsx
-    register/page.tsx
-  components/
-    chat/
-      chat-composer.tsx
-      chat-sidebar.tsx
-      markdown-message.tsx
-      message-list.tsx
-      token-usage-badge.tsx
-  lib/
-    auth.ts                  # NextAuth config
-    users.ts                 # User repository/database access
-    chat/
-      gemini.ts              # Gemini service
-      types.ts
-      validation.ts
-    security/
-      rate-limit.ts
+```bash
+docker compose up --build
 ```
 
-## Environment Variables
+Local development:
 
-สร้างไฟล์ `.env` จาก `.env.example`
+```bash
+npm install
+npm run dev
+```
+
+Open:
+
+```txt
+http://localhost:3000
+```
+
+Required environment variables:
 
 ```env
 GEMINI_API_KEY=your_gemini_key
@@ -76,74 +42,70 @@ NEXTAUTH_SECRET=your_secret
 NEXTAUTH_URL=http://localhost:3000
 AUTH_EMAIL=admin@example.com
 AUTH_PASSWORD_HASH=
-DATABASE_URL=postgresql://admin:password@localhost:5432/knowledge_assistant
-CHROMA_URL=http://localhost:8000
+DATABASE_URL=postgresql://admin:password@db:5432/knowledge_assistant
+CHROMA_URL=http://chromadb:8000
 ```
 
-หมายเหตุ:
-- ถ้า `gemini-2.5-flash` ใช้ไม่ได้กับ key ของคุณ ให้ลอง `GEMINI_MODEL=gemini-2.0-flash`
-- แนะนำให้ใช้ user จาก database ผ่านหน้า register
-- ถ้าต้องการ fallback admin account ให้ใส่ `AUTH_EMAIL` และ `AUTH_PASSWORD_HASH` ที่ hash ด้วย bcrypt
+If `gemini-2.5-flash` is not available for your API key, set:
 
-## Getting Started
-
-ติดตั้ง dependencies:
-
-```bash
-npm install
+```env
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
-รัน development server:
+## Features Done
 
-```bash
-npm run dev
-```
+- [x] Login + Protected Routes
+- [x] Register user with bcrypt password hashing
+- [x] File Upload
+- [x] TXT/PDF type validation
+- [x] File size validation
+- [x] Filename sanitization
+- [x] Chat with AI
+- [x] Streaming response
+- [x] Timeout and API error handling
+- [x] Chat with uploaded file context
+- [x] Markdown rendering
+- [x] Citation prompt using uploaded filename
+- [x] Token usage counter per chat session
+- [x] New chat
+- [x] Conversation history
+- [x] Rate limiting
+- [x] API key rotation via `GEMINI_API_KEYS`
+- [x] Docker Compose + healthcheck
+- [x] RAG with Vector DB (TXT: chunk + Gemini embeddings + Chroma retrieval; PDF unchanged)
+- [ ] Unit tests with coverage >= 40%
 
-เปิดเว็บ:
+## Architecture
 
-```txt
-http://localhost:3000
-```
+The app uses Next.js App Router with Server Components for protected pages and Client Components for interactive chat state.
 
-ตรวจคุณภาพโค้ด:
+- `src/app/chat/page.tsx`: protected chat page; redirects unauthenticated users to login
+- `src/app/chat/chat-client.tsx`: client-side chat state, new chat, local history, file attachment handling, and SSE consumption
+- `src/app/api/chat/route.ts`: authenticated chat API route with rate limiting, request validation, and Server-Sent Events streaming
+- `src/lib/auth.ts`: NextAuth configuration
+- `src/lib/users.ts`: user repository and PostgreSQL access
+- `src/lib/chat/gemini.ts`: Gemini service layer
+- `src/lib/chat/validation.ts`: message and attachment validation
+- `src/components/chat/*`: reusable chat UI components
 
-```bash
-npm run lint
-npm run build
-```
+Current file handling:
 
-## Docker
+- TXT files are read in the browser and sent as text context.
+- PDF files are converted to base64 in the browser and sent to Gemini as inline PDF data.
+- Uploaded files are not permanently stored yet.
 
-รันด้วย Docker Compose:
+Recommended production storage:
 
-```bash
-docker compose up --build
-```
+- Store original PDF/TXT files in object storage such as Cloudflare R2, AWS S3, Supabase Storage, or Google Cloud Storage.
+- Store file metadata in PostgreSQL: owner user id, original filename, sanitized storage key, MIME type, size, upload time.
+- Store extracted chunks and embeddings in a vector DB such as ChromaDB, pgvector, Pinecone, Qdrant, or Weaviate.
+- For this project, Cloudflare R2 is a good fit if you want cheap S3-compatible storage; PostgreSQL should still keep metadata and ownership.
 
-Healthcheck endpoint:
+## Known Issues
 
-```txt
-GET /api/health
-```
-
-## Rubric Coverage
-
-- Login + Protected Routes: implemented with NextAuth, bcrypt และ protected proxy
-- Upload File: TXT/PDF validation, size limit และ filename sanitization
-- Chat with AI: Gemini streaming route พร้อม error handling และ timeout
-- Chat with Uploaded File Context: TXT context และ PDF inline data ไปยัง Gemini
-- Token Usage Counter: แสดงผลรวม token ต่อ session
-- Markdown Rendering: render heading, list, bold, inline code และ code block
-- Citation: prompt ให้ AI อ้างอิงไฟล์ด้วย `[filename]`
-- Streaming Response: Server-Sent Events จาก API route
-- Conversation History: save/load ผ่าน localStorage
-- Rate Limiting / API Key Rotation: memory rate limit และ `GEMINI_API_KEYS`
-- Docker Compose + Healthcheck: มี `docker-compose.yml` และ `/api/health`
-- Code Structure: แยก route/service/repo/component ชัดเจน
-- Security Hardening: auth guard, bcrypt, input validation, sanitization และ security headers
-
-## Current Limitations
-
-- Vector DB/RAG แบบ embedding retrieval ยังไม่ได้เชื่อมเต็มรูปแบบ
-- Unit test coverage ยังไม่ได้เพิ่ม
-- Conversation history ตอนนี้เก็บฝั่ง browser ไม่ใช่ database
+- Full RAG is not implemented yet. ChromaDB is configured, but there is no chunking, embedding, or retrieval pipeline.
+- Chat history is stored in browser `localStorage`, not PostgreSQL, so it is device/browser-specific.
+- Uploaded files are used only for the current request and are not persisted.
+- PDF quality depends on Gemini's inline PDF handling; there is no separate PDF text extraction pipeline yet.
+- Unit tests and coverage are not added yet.
+- In-memory rate limiting resets when the server restarts and is not shared across multiple instances.

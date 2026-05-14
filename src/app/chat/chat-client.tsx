@@ -2,9 +2,12 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ChatComposer } from "../../components/chat/chat-composer";
+import { ChatHistoryPanel } from "../../components/chat/chat-history-panel";
+import { toClientAttachment } from "../../components/chat/file-attachment";
 import { MessageList } from "../../components/chat/message-list";
 import { TokenUsageBadge } from "../../components/chat/token-usage-badge";
 import type {
+  ChatConversation,
   ClientAttachment,
   Message,
   TokenUsage,
@@ -18,7 +21,12 @@ const starterMessages: Message[] = [
       "**Console online.** Ask me anything, or attach a TXT/PDF so I can answer with document context and citations.",
   },
 ];
-const HISTORY_KEY = "knowledge-assistant.chat-history";
+const HISTORY_KEY = "knowledge-assistant.chat-conversations";
+
+type ConversationState = {
+  activeConversationId: string;
+  conversations: ChatConversation[];
+};
 
 function parseSseEvents(buffer: string) {
   const events = buffer.split("\n\n");
@@ -44,72 +52,92 @@ function parseSseEvents(buffer: string) {
   };
 }
 
-function sanitizeFileName(fileName: string) {
-  return fileName.replace(/[^a-zA-Z0-9._ -]/g, "").trim().slice(0, 120);
-}
-
-function readFileAsBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.addEventListener("load", () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      resolve(result.split(",")[1] ?? "");
-    });
-    reader.addEventListener("error", () => reject(reader.error));
-    reader.readAsDataURL(file);
-  });
-}
-
-async function toClientAttachment(file: File): Promise<ClientAttachment> {
-  const name = sanitizeFileName(file.name) || "attachment";
-  const lowerName = file.name.toLowerCase();
-  const isText = file.type === "text/plain" || lowerName.endsWith(".txt");
-  const isPdf = file.type === "application/pdf" || lowerName.endsWith(".pdf");
-
-  if (!isText && !isPdf) {
-    throw new Error("Only PDF or TXT files can be attached.");
-  }
-
-  if (file.size > 10 * 1024 * 1024) {
-    throw new Error("File must be 10MB or smaller.");
-  }
-
-  if (isText) {
-    return {
-      name,
-      mimeType: "text/plain",
-      text: (await file.text()).slice(0, 40_000),
-    };
-  }
-
+function createConversation(): ChatConversation {
   return {
-    name,
-    mimeType: "application/pdf",
-    data: await readFileAsBase64(file),
+    id: crypto.randomUUID(),
+    title: "New Chat",
+    messages: starterMessages,
+    updatedAt: Date.now(),
   };
 }
 
+function createInitialConversation(): ChatConversation {
+  return {
+    id: "initial-chat",
+    title: "New Chat",
+    messages: starterMessages,
+    updatedAt: 0,
+  };
+}
+
+function getConversationTitle(messages: Message[]) {
+  const firstUserMessage = messages.find((message) => message.role === "user");
+  const title = firstUserMessage?.content.trim() || "New Chat";
+  return title.length > 36 ? `${title.slice(0, 33)}...` : title;
+}
+
+function loadConversationState(): ConversationState {
+  const fallbackConversation = createInitialConversation();
+
+  if (typeof window === "undefined") {
+    return {
+      activeConversationId: fallbackConversation.id,
+      conversations: [fallbackConversation],
+    };
+  }
+
+  const saved = window.localStorage.getItem(HISTORY_KEY);
+
+  if (!saved) {
+    return {
+      activeConversationId: fallbackConversation.id,
+      conversations: [fallbackConversation],
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(saved) as ConversationState;
+    const conversations = Array.isArray(parsed.conversations)
+      ? parsed.conversations.filter(
+          (conversation) =>
+            conversation &&
+            typeof conversation.id === "string" &&
+            Array.isArray(conversation.messages),
+        )
+      : [];
+
+    if (conversations.length === 0) {
+      return {
+        activeConversationId: fallbackConversation.id,
+        conversations: [fallbackConversation],
+      };
+    }
+
+    return {
+      activeConversationId:
+        conversations.find((conversation) => conversation.id === parsed.activeConversationId)
+          ?.id ?? conversations[0].id,
+      conversations,
+    };
+  } catch {
+    window.localStorage.removeItem(HISTORY_KEY);
+    return {
+      activeConversationId: fallbackConversation.id,
+      conversations: [fallbackConversation],
+    };
+  }
+}
+
 export function ChatClient({ email }: { email?: string | null }) {
-  const [messages, setMessages] = useState<Message[]>(() => {
-    if (typeof window === "undefined") {
-      return starterMessages;
-    }
+  const [conversationState, setConversationState] = useState<ConversationState>(() => {
+    const conversation = createInitialConversation();
 
-    const saved = window.localStorage.getItem(HISTORY_KEY);
-
-    if (!saved) {
-      return starterMessages;
-    }
-
-    try {
-      const parsed = JSON.parse(saved) as Message[];
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : starterMessages;
-    } catch {
-      window.localStorage.removeItem(HISTORY_KEY);
-      return starterMessages;
-    }
+    return {
+      activeConversationId: conversation.id,
+      conversations: [conversation],
+    };
   });
+  const [hasLoadedHistory, setHasLoadedHistory] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const [attachedFile, setAttachedFile] = useState<ClientAttachment | null>(null);
@@ -118,8 +146,33 @@ export function ChatClient({ email }: { email?: string | null }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-40)));
-  }, [messages]);
+    const timeoutId = window.setTimeout(() => {
+      setConversationState(loadConversationState());
+      setHasLoadedHistory(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedHistory) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify({
+        ...conversationState,
+        conversations: conversationState.conversations.slice(0, 20),
+      }),
+    );
+  }, [conversationState, hasLoadedHistory]);
+
+  const activeConversation =
+    conversationState.conversations.find(
+      (conversation) => conversation.id === conversationState.activeConversationId,
+    ) ?? conversationState.conversations[0];
+  const messages = activeConversation?.messages ?? starterMessages;
 
   const totalTokens = useMemo(
     () =>
@@ -129,6 +182,120 @@ export function ChatClient({ email }: { email?: string | null }) {
       ),
     [messages],
   );
+
+  function updateConversationMessages(
+    conversationId: string,
+    updater: (messages: Message[]) => Message[],
+  ) {
+    setConversationState((current) => ({
+      ...current,
+      conversations: current.conversations
+        .map((conversation) => {
+          if (conversation.id !== conversationId) {
+            return conversation;
+          }
+
+          const nextMessages = updater(conversation.messages);
+
+          return {
+            ...conversation,
+            title: getConversationTitle(nextMessages),
+            messages: nextMessages.slice(-40),
+            updatedAt: Date.now(),
+          };
+        })
+        .sort((a, b) => b.updatedAt - a.updatedAt),
+    }));
+  }
+
+  function handleNewChat() {
+    const conversation = createConversation();
+
+    setConversationState((current) => ({
+      activeConversationId: conversation.id,
+      conversations: [conversation, ...current.conversations].slice(0, 20),
+    }));
+    setInput("");
+    setError("");
+    setAttachedFile(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function handleSelectConversation(conversationId: string) {
+    setConversationState((current) => ({
+      ...current,
+      activeConversationId: conversationId,
+    }));
+    setError("");
+    setAttachedFile(null);
+    setInput("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function handleDeleteConversation(conversationId: string) {
+    setConversationState((current) => {
+      const remaining = current.conversations.filter(
+        (conversation) => conversation.id !== conversationId,
+      );
+
+      if (remaining.length === 0) {
+        const conversation = createInitialConversation();
+
+        return {
+          activeConversationId: conversation.id,
+          conversations: [conversation],
+        };
+      }
+
+      return {
+        activeConversationId:
+          current.activeConversationId === conversationId
+            ? remaining[0].id
+            : current.activeConversationId,
+        conversations: remaining,
+      };
+    });
+    setInput("");
+    setError("");
+    setAttachedFile(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function handleInputChange(value: string) {
+    setInput(value);
+
+    const draftTitle = value.trim();
+
+    setConversationState((current) => ({
+      ...current,
+      conversations: current.conversations.map((conversation) => {
+        if (
+          conversation.id !== current.activeConversationId ||
+          conversation.messages.some((message) => message.role === "user")
+        ) {
+          return conversation;
+        }
+
+        return {
+          ...conversation,
+          title: draftTitle
+            ? draftTitle.length > 36
+              ? `${draftTitle.slice(0, 33)}...`
+              : draftTitle
+            : "New Chat",
+        };
+      }),
+    }));
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -151,6 +318,7 @@ export function ChatClient({ email }: { email?: string | null }) {
       role: "assistant",
       content: "",
     };
+    const conversationId = activeConversation.id;
     const requestMessages = [...messages, userMessage]
       .filter((message) => message.id !== "welcome")
       .map((message) => ({
@@ -158,7 +326,11 @@ export function ChatClient({ email }: { email?: string | null }) {
         content: message.content,
       }));
 
-    setMessages([...messages, userMessage, assistantMessage]);
+    updateConversationMessages(conversationId, (current) => [
+      ...current,
+      userMessage,
+      assistantMessage,
+    ]);
     setInput("");
     setError("");
     setAttachedFile(null);
@@ -208,7 +380,7 @@ export function ChatClient({ email }: { email?: string | null }) {
           const data = event.data ? JSON.parse(event.data) : {};
 
           if (event.name === "token") {
-            setMessages((current) =>
+            updateConversationMessages(conversationId, (current) =>
               current.map((message) =>
                 message.id === assistantId
                   ? { ...message, content: message.content + data.text }
@@ -218,10 +390,20 @@ export function ChatClient({ email }: { email?: string | null }) {
           }
 
           if (event.name === "usage") {
-            setMessages((current) =>
+            updateConversationMessages(conversationId, (current) =>
               current.map((message) =>
                 message.id === assistantId
                   ? { ...message, usage: data as TokenUsage }
+                  : message,
+              ),
+            );
+          }
+
+          if (event.name === "provider") {
+            updateConversationMessages(conversationId, (current) =>
+              current.map((message) =>
+                message.id === assistantId
+                  ? { ...message, provider: String(data.provider ?? "AI") }
                   : message,
               ),
             );
@@ -271,18 +453,27 @@ export function ChatClient({ email }: { email?: string | null }) {
   }
 
   return (
-    <section className="chat-console relative flex min-h-[72vh] flex-1 flex-col overflow-hidden border-4 border-[#111111] bg-[#E5E7EB] text-[#111111] shadow-[18px_18px_0_#111111]">
-      <div className="grid gap-3 border-b-4 border-[#111111] bg-[#111111] px-4 py-3 text-sm text-white sm:grid-cols-[1fr_auto] sm:items-center">
-        <div className="font-black uppercase tracking-wider text-[#E5E7EB]">
-          Operator: <span className="text-[#FBB829]">{email}</span>
+    <section className="chat-console relative flex h-full min-h-0 flex-1 flex-col overflow-hidden border-4 border-[#1C1B1A] bg-[#E7E1D6] text-[#1C1B1A] shadow-[18px_18px_0_#1C1B1A]">
+      <div className="grid gap-3 border-b-4 border-[#1C1B1A] bg-[#1C1B1A] px-4 py-3 text-sm text-white sm:grid-cols-[1fr_auto] sm:items-center">
+        <div className="font-black uppercase tracking-wider text-[#E7E1D6]">
+          Operator: <span className="text-[#C89B3C]">{email}</span>
         </div>
         <TokenUsageBadge totalTokens={totalTokens} />
       </div>
 
+      <ChatHistoryPanel
+        conversations={conversationState.conversations}
+        activeConversationId={activeConversation.id}
+        isStreaming={isStreaming}
+        onNewChat={handleNewChat}
+        onSelectConversation={handleSelectConversation}
+        onDeleteConversation={handleDeleteConversation}
+      />
+
       <MessageList messages={messages} />
 
       {error ? (
-        <div className="border-t-4 border-[#111111] bg-[#B91C1C] px-4 py-3 text-sm font-black uppercase tracking-wider text-white">
+        <div className="border-t-4 border-[#1C1B1A] bg-[#8E3A3A] px-4 py-3 text-sm font-black uppercase tracking-wider text-white">
           {error}
         </div>
       ) : null}
@@ -292,7 +483,7 @@ export function ChatClient({ email }: { email?: string | null }) {
         attachedFile={attachedFile}
         isStreaming={isStreaming}
         fileInputRef={fileInputRef}
-        onInputChange={setInput}
+        onInputChange={handleInputChange}
         onFileChange={handleFileChange}
         onRemoveFile={removeFile}
         onSubmit={handleSubmit}

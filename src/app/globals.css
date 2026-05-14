@@ -28,22 +28,22 @@ body {
 .hero-noise {
   background-image:
     linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 8px),
-    radial-gradient(circle at 20% 20%, rgba(251, 184, 41, 0.16), transparent 28%),
-    radial-gradient(circle at 82% 34%, rgba(185, 28, 28, 0.22), transparent 28%),
-    radial-gradient(circle at 62% 78%, rgba(41, 134, 204, 0.22), transparent 30%);
+    radial-gradient(circle at 20% 20%, rgba(200, 155, 60, 0.1), transparent 28%),
+    radial-gradient(circle at 82% 34%, rgba(142, 58, 58, 0.14), transparent 28%),
+    radial-gradient(circle at 62% 78%, rgba(79, 111, 134, 0.14), transparent 30%);
 }
 
 .hero-halftone {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.22) 1px, transparent 1.5px);
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.14) 1px, transparent 1.5px);
   background-size: 12px 12px;
   mask-image: linear-gradient(120deg, transparent 0%, black 18%, black 72%, transparent 100%);
 }
 
 .hero-city {
   background:
-    linear-gradient(115deg, transparent 0 50%, rgba(251, 184, 41, 0.11) 50% 54%, transparent 54%),
-    linear-gradient(65deg, transparent 0 62%, rgba(185, 28, 28, 0.18) 62% 66%, transparent 66%),
-    linear-gradient(to top, #111111 0 18%, transparent 18%);
+    linear-gradient(115deg, transparent 0 50%, rgba(200, 155, 60, 0.08) 50% 54%, transparent 54%),
+    linear-gradient(65deg, transparent 0 62%, rgba(142, 58, 58, 0.1) 62% 66%, transparent 66%),
+    linear-gradient(to top, #1C1B1A 0 18%, transparent 18%);
 }
 
 .hero-city::before,
@@ -53,8 +53,8 @@ body {
   height: 44%;
   content: "";
   background:
-    linear-gradient(to top, #111111 0 100%),
-    linear-gradient(to top, #111111 0 100%);
+    linear-gradient(to top, #1C1B1A 0 100%),
+    linear-gradient(to top, #1C1B1A 0 100%);
   clip-path: polygon(
     0 100%,
     0 70%,
@@ -104,7 +104,7 @@ body {
 }
 
 .comic-impact:hover {
-  filter: saturate(1.25);
+  filter: saturate(1.05);
   transform: translate(4px, -4px) rotate(-1deg);
   animation: impact-shake 220ms linear;
 }
@@ -115,9 +115,9 @@ body {
   pointer-events: none;
   content: "";
   background:
-    linear-gradient(transparent 0 48%, rgba(17, 17, 17, 0.055) 50%, transparent 52%),
-    radial-gradient(circle at 12% 20%, rgba(251, 184, 41, 0.16), transparent 18%),
-    radial-gradient(circle at 88% 78%, rgba(185, 28, 28, 0.12), transparent 20%);
+    linear-gradient(transparent 0 48%, rgba(28, 27, 26, 0.055) 50%, transparent 52%),
+    radial-gradient(circle at 12% 20%, rgba(200, 155, 60, 0.08), transparent 18%),
+    radial-gradient(circle at 88% 78%, rgba(142, 58, 58, 0.07), transparent 20%);
   background-size:
     100% 12px,
     auto,
@@ -125,7 +125,7 @@ body {
 }
 
 .superhero-figure {
-  filter: drop-shadow(18px 24px 0 rgba(17, 17, 17, 0.62));
+  filter: drop-shadow(18px 24px 0 rgba(28, 27, 26, 0.62));
 }
 
 .superhero-figure .cape {
@@ -134,7 +134,7 @@ body {
   top: 94px;
   width: 260px;
   height: 330px;
-  background: linear-gradient(145deg, #b91c1c 0%, #690d0d 100%);
+  background: linear-gradient(145deg, #8E3A3A 0%, #4B2323 100%);
   clip-path: polygon(38% 0, 78% 8%, 100% 90%, 60% 100%, 0 88%, 18% 10%);
   animation: cape-rip 1.9s ease-in-out infinite;
 }
@@ -145,10 +145,10 @@ body {
   top: 34px;
   width: 86px;
   height: 92px;
-  border: 5px solid #111111;
+  border: 5px solid #1C1B1A;
   border-radius: 45% 45% 40% 40%;
-  background: #fbb829;
-  box-shadow: inset -14px -10px 0 rgba(17, 17, 17, 0.18);
+  background: #C89B3C;
+  box-shadow: inset -14px -10px 0 rgba(28, 27, 26, 0.18);
 }
 
 .superhero-figure .torso {
@@ -157,8 +157,8 @@ body {
   top: 118px;
   width: 154px;
   height: 210px;
-  border: 6px solid #111111;
-  background: linear-gradient(115deg, #fbb829 0 50%, #2986cc 50% 100%);
+  border: 6px solid #1C1B1A;
+  background: linear-gradient(115deg, #C89B3C 0 50%, #4F6F86 50% 100%);
   clip-path: polygon(18% 0, 82% 0, 100% 72%, 66% 100%, 34% 100%, 0 72%);
 }
 
@@ -170,9 +170,9 @@ body {
   width: 82px;
   height: 64px;
   place-items: center;
-  border: 5px solid #111111;
+  border: 5px solid #1C1B1A;
   background: #ffffff;
-  color: #111111;
+  color: #1C1B1A;
   font-size: 28px;
   font-weight: 900;
   transform: skew(-8deg);
@@ -181,8 +181,8 @@ body {
 .superhero-figure .arm,
 .superhero-figure .leg {
   position: absolute;
-  border: 6px solid #111111;
-  background: #2986cc;
+  border: 6px solid #1C1B1A;
+  background: #4F6F86;
 }
 
 .superhero-figure .arm.left {
@@ -206,7 +206,7 @@ body {
   top: 304px;
   width: 58px;
   height: 178px;
-  background: #fbb829;
+  background: #C89B3C;
   transform: rotate(8deg);
 }
 

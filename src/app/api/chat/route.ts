@@ -1,13 +1,14 @@
 import { auth } from "../../../lib/auth";
+import { fallbackAiUsage, streamAiAnswer } from "../../../lib/chat/ai";
+import type { ChatAttachment } from "../../../lib/chat/types";
 import {
   ChatValidationError,
-  fallbackUsage,
   normalizeAttachment,
   normalizeMessages,
-  streamGeminiAnswer,
   type ChatMessage,
   type TokenUsage,
 } from "../../../lib/gemini";
+import { buildTxtRagContext } from "../../../lib/rag/txt-rag";
 import { checkRateLimit } from "../../../lib/security/rate-limit";
 
 export const runtime = "nodejs";
@@ -68,15 +69,42 @@ export async function POST(request: Request) {
     return Response.json({ error: message }, { status: 400 });
   }
 
+  let attachmentForModel = attachment;
+  const chromaUrl = process.env.CHROMA_URL?.trim();
+
+  if (
+    chromaUrl &&
+    attachment?.mimeType === "text/plain" &&
+    attachment.text &&
+    attachment.text.length > 0
+  ) {
+    try {
+      const ragText = await buildTxtRagContext({
+        userKey: session.user.email ?? session.user.id ?? "anonymous",
+        fileName: attachment.name,
+        fullText: attachment.text,
+        userQuestion: messages[messages.length - 1].content,
+        signal: request.signal,
+      });
+      const ragAttachment: ChatAttachment = {
+        ...attachment,
+        text: ragText,
+      };
+      attachmentForModel = ragAttachment;
+    } catch (error) {
+      console.error("Chroma RAG skipped:", error);
+    }
+  }
+
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       let answer = "";
       let usage: TokenUsage | null = null;
 
       try {
-        await streamGeminiAnswer({
+        await streamAiAnswer({
           messages,
-          attachment,
+          attachment: attachmentForModel,
           signal: request.signal,
           onText(text) {
             answer += text;
@@ -85,9 +113,12 @@ export async function POST(request: Request) {
           onUsage(nextUsage) {
             usage = nextUsage;
           },
+          onProvider(provider) {
+            sendEvent(controller, "provider", { provider });
+          },
         });
 
-        sendEvent(controller, "usage", usage ?? fallbackUsage(messages, answer));
+        sendEvent(controller, "usage", usage ?? fallbackAiUsage(messages, answer));
         sendEvent(controller, "done", {});
       } catch (error) {
         const message =

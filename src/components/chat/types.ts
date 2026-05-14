@@ -11,7 +11,15 @@ export type Message = {
   role: Role;
   content: string;
   usage?: TokenUsage;
+  provider?: string;
   attachmentName?: string;
+};
+
+export type ChatConversation = {
+  id: string;
+  title: string;
+  messages: Message[];
+  updatedAt: number;
 };
 
 export type ClientAttachment = {

@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { ChatSidebar } from "../../components/chat/chat-sidebar";
 import { auth } from "../../lib/auth";
-import { ChatClient } from "./chat-client";
+import { UploadClient } from "./upload-client";
 
-export default async function ChatPage() {
+export default async function UploadPage() {
   const session = await auth();
 
   if (!session?.user) {
@@ -22,7 +22,7 @@ export default async function ChatPage() {
         <ChatSidebar email={session.user.email} />
 
         <section className="flex h-screen min-h-0 min-w-0 overflow-hidden p-4 sm:p-6">
-          <ChatClient email={session.user.email} />
+          <UploadClient email={session.user.email} />
         </section>
       </div>
     </main>

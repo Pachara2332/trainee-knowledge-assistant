@@ -35,25 +35,25 @@ export default async function RegisterPage({
   const { error } = await searchParams;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0F172A] px-6 py-10 text-white">
+    <main className="min-h-screen overflow-hidden bg-[#18202B] px-6 py-10 text-white">
       <div className="pointer-events-none fixed inset-0 hero-noise opacity-70" />
       <div className="pointer-events-none fixed inset-0 hero-halftone opacity-35" />
       <section className="relative mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
-          <p className="mb-4 inline-block bg-[#FBB829] px-3 py-1 text-sm font-black uppercase tracking-[0.28em] text-[#111111] shadow-[6px_6px_0_#B91C1C]">
+          <p className="mb-4 inline-block bg-[#C89B3C] px-3 py-1 text-sm font-black uppercase tracking-[0.28em] text-[#1C1B1A] shadow-[6px_6px_0_#8E3A3A]">
             Recruit File
           </p>
-          <h1 className="max-w-2xl text-6xl font-black uppercase leading-[0.85] tracking-tight text-[#FBB829] drop-shadow-[8px_8px_0_#111111] sm:text-8xl">
+          <h1 className="max-w-2xl text-6xl font-black uppercase leading-[0.85] tracking-tight text-[#C89B3C] drop-shadow-[8px_8px_0_#1C1B1A] sm:text-8xl">
             Enter The Archive
           </h1>
-          <p className="mt-6 max-w-xl text-lg font-semibold text-[#E5E7EB]">
+          <p className="mt-6 max-w-xl text-lg font-semibold text-[#E7E1D6]">
             Create a secured trainee account, then interrogate your knowledge
             files with AI backup.
           </p>
         </div>
 
         <form
-          className="relative border-4 border-[#111111] bg-white p-6 text-[#111111] shadow-[16px_16px_0_#B91C1C]"
+          className="relative border-4 border-[#1C1B1A] bg-white p-6 text-[#1C1B1A] shadow-[16px_16px_0_#8E3A3A]"
           action={async (formData) => {
             "use server";
 
@@ -76,7 +76,7 @@ export default async function RegisterPage({
             });
           }}
         >
-          <div className="absolute -right-4 -top-4 bg-[#2986CC] px-4 py-2 text-sm font-black uppercase tracking-widest text-white shadow-[6px_6px_0_#111111]">
+          <div className="absolute -right-4 -top-4 bg-[#4F6F86] px-4 py-2 text-sm font-black uppercase tracking-widest text-white shadow-[6px_6px_0_#1C1B1A]">
             Register
           </div>
           <h2 className="mb-6 text-4xl font-black uppercase leading-none">
@@ -86,7 +86,7 @@ export default async function RegisterPage({
           <label className="mb-4 flex flex-col gap-2 text-sm font-black uppercase tracking-wider">
             Name
             <input
-              className="h-12 border-2 border-[#111111] bg-[#E5E7EB] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#2986CC]"
+              className="h-12 border-2 border-[#1C1B1A] bg-[#E7E1D6] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#4F6F86]"
               name="name"
               autoComplete="name"
             />
@@ -95,7 +95,7 @@ export default async function RegisterPage({
           <label className="mb-4 flex flex-col gap-2 text-sm font-black uppercase tracking-wider">
             Email
             <input
-              className="h-12 border-2 border-[#111111] bg-[#E5E7EB] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#2986CC]"
+              className="h-12 border-2 border-[#1C1B1A] bg-[#E7E1D6] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#4F6F86]"
               name="email"
               type="email"
               autoComplete="email"
@@ -106,7 +106,7 @@ export default async function RegisterPage({
           <label className="mb-5 flex flex-col gap-2 text-sm font-black uppercase tracking-wider">
             Password
             <input
-              className="h-12 border-2 border-[#111111] bg-[#E5E7EB] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#2986CC]"
+              className="h-12 border-2 border-[#1C1B1A] bg-[#E7E1D6] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#4F6F86]"
               name="password"
               type="password"
               minLength={8}
@@ -116,18 +116,18 @@ export default async function RegisterPage({
           </label>
 
           {error ? (
-            <p className="mb-4 border-2 border-[#B91C1C] bg-red-50 px-3 py-2 text-sm font-bold text-[#B91C1C]">
+            <p className="mb-4 border-2 border-[#8E3A3A] bg-red-50 px-3 py-2 text-sm font-bold text-[#8E3A3A]">
               {decodeURIComponent(error)}
             </p>
           ) : null}
 
-          <button className="w-full bg-[#FBB829] px-5 py-4 text-lg font-black uppercase tracking-wider text-[#111111] shadow-[8px_8px_0_#111111] transition hover:-translate-y-1 hover:translate-x-1 hover:shadow-[4px_4px_0_#111111]">
+          <button className="w-full bg-[#C89B3C] px-5 py-4 text-lg font-black uppercase tracking-wider text-[#1C1B1A] shadow-[8px_8px_0_#1C1B1A] transition hover:-translate-y-1 hover:translate-x-1 hover:shadow-[4px_4px_0_#1C1B1A]">
             Create Account
           </button>
 
           <p className="mt-6 text-center text-sm font-semibold">
             Already cleared?{" "}
-            <Link className="font-black text-[#B91C1C] underline" href="/login">
+            <Link className="font-black text-[#8E3A3A] underline" href="/login">
               Sign in
             </Link>
           </p>
