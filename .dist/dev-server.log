@@ -1,0 +1,458 @@
+
+> trainee-knowledge-assistant@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.111:3000
+- Environments: .env
+✓ Ready in 730ms
+Creating turbopack project { dir: 'C:\\Users\\User\\trainee-knowledge-assistant', testMode: true }
+
+ GET /login?callbackUrl=http%3A%2F%2Flocalhost%3A3000%2F 200 in 633ms (next.js: 340ms, application-code: 293ms)
+ GET / 200 in 323ms (next.js: 35ms, application-code: 288ms)
+ GET /register 200 in 336ms (next.js: 178ms, application-code: 159ms)
+ GET /login?callbackUrl=http%3A%2F%2Flocalhost%3A3000%2F 200 in 61ms (next.js: 4ms, application-code: 57ms)
+ GET /register 200 in 30ms (next.js: 3ms, application-code: 27ms)
+ GET /login 200 in 30ms (next.js: 3ms, application-code: 27ms)
+ GET /register 200 in 35ms (next.js: 3ms, application-code: 32ms)
+(node:27520) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ GET /chat 200 in 751ms (next.js: 582ms, proxy.ts: 102ms, application-code: 66ms)
+ POST /register 303 in 2.7s (next.js: 5ms, application-code: 2.7s)
+  └─ ƒ <inline action>({}) in 1874ms src/app/register/page.tsx
+ GET /register?error=Email+is+already+registered. 200 in 55ms (next.js: 4ms, application-code: 51ms)
+ POST /register 303 in 442ms (next.js: 5ms, application-code: 437ms)
+  └─ ƒ <inline action>({}) in 369ms src/app/register/page.tsx
+ POST /chat 200 in 496ms (next.js: 9ms, proxy.ts: 32ms, application-code: 455ms)
+ GET /chat 200 in 71ms (next.js: 4ms, proxy.ts: 16ms, application-code: 51ms)
+ GET /chat 200 in 73ms (next.js: 6ms, proxy.ts: 25ms, application-code: 43ms)
+✓ Compiled in 420ms
+✓ Compiled in 193ms
+ GET /chat 200 in 609ms (next.js: 142ms, proxy.ts: 367ms, application-code: 101ms)
+ GET /chat 200 in 85ms (next.js: 5ms, proxy.ts: 32ms, application-code: 48ms)
+ GET /chat 200 in 175ms (next.js: 5ms, proxy.ts: 22ms, application-code: 148ms)
+ GET /chat 200 in 183ms (next.js: 5ms, proxy.ts: 97ms, application-code: 81ms)
+ GET /chat 200 in 102ms (next.js: 4ms, proxy.ts: 46ms, application-code: 52ms)
+ GET /chat 200 in 75ms (next.js: 3ms, proxy.ts: 26ms, application-code: 45ms)
+ GET /chat 200 in 92ms (next.js: 3ms, proxy.ts: 24ms, application-code: 66ms)
+ GET /chat 200 in 89ms (next.js: 5ms, proxy.ts: 38ms, application-code: 47ms)
+ GET /chat 200 in 78ms (next.js: 3ms, proxy.ts: 26ms, application-code: 49ms)
+ GET /chat 200 in 83ms (next.js: 3ms, proxy.ts: 21ms, application-code: 58ms)
+ GET /chat 200 in 79ms (next.js: 4ms, proxy.ts: 25ms, application-code: 50ms)
+ GET /chat 200 in 75ms (next.js: 4ms, proxy.ts: 23ms, application-code: 48ms)
+ GET /chat 200 in 72ms (next.js: 3ms, proxy.ts: 23ms, application-code: 46ms)
+ GET /chat 200 in 78ms (next.js: 3ms, proxy.ts: 23ms, application-code: 51ms)
+ GET /chat 200 in 68ms (next.js: 4ms, proxy.ts: 21ms, application-code: 43ms)
+ GET /chat 200 in 65ms (next.js: 4ms, proxy.ts: 20ms, application-code: 41ms)
+ GET /chat 200 in 67ms (next.js: 4ms, proxy.ts: 19ms, application-code: 45ms)
+ GET /chat 200 in 68ms (next.js: 4ms, proxy.ts: 22ms, application-code: 42ms)
+ GET /chat 200 in 76ms (next.js: 4ms, proxy.ts: 21ms, application-code: 51ms)
+ GET /chat 200 in 80ms (next.js: 4ms, proxy.ts: 21ms, application-code: 55ms)
+ GET /chat 200 in 78ms (next.js: 5ms, proxy.ts: 25ms, application-code: 49ms)
+ GET /chat 200 in 153ms (next.js: 5ms, proxy.ts: 22ms, application-code: 126ms)
+ GET /chat 200 in 149ms (next.js: 4ms, proxy.ts: 24ms, application-code: 120ms)
+ GET /chat 200 in 182ms (next.js: 48ms, proxy.ts: 64ms, application-code: 70ms)
+ GET /chat 200 in 88ms (next.js: 5ms, proxy.ts: 30ms, application-code: 53ms)
+ GET /chat 200 in 129ms (next.js: 7ms, proxy.ts: 26ms, application-code: 96ms)
+ GET /chat 200 in 160ms (next.js: 7ms, proxy.ts: 71ms, application-code: 82ms)
+ GET /chat 200 in 80ms (next.js: 5ms, proxy.ts: 33ms, application-code: 43ms)
+ GET / 200 in 343ms (next.js: 17ms, application-code: 326ms)
+ GET /chat 200 in 230ms (next.js: 13ms, proxy.ts: 68ms, application-code: 149ms)
+ GET /upload 200 in 484ms (next.js: 433ms, proxy.ts: 10ms, application-code: 41ms)
+ GET /chat 200 in 45ms (next.js: 3ms, proxy.ts: 10ms, application-code: 32ms)
+ GET / 200 in 19ms (next.js: 3ms, application-code: 16ms)
+ GET /login 200 in 97ms (next.js: 44ms, application-code: 53ms)
+ GET /chat 200 in 77ms (next.js: 6ms, proxy.ts: 17ms, application-code: 54ms)
+ GET /chat 200 in 60ms (next.js: 3ms, proxy.ts: 26ms, application-code: 31ms)
+ GET / 200 in 29ms (next.js: 3ms, application-code: 26ms)
+ GET /login 200 in 34ms (next.js: 3ms, application-code: 31ms)
+ GET /chat 200 in 48ms (next.js: 3ms, proxy.ts: 8ms, application-code: 37ms)
+ GET /chat 200 in 60ms (next.js: 3ms, proxy.ts: 17ms, application-code: 39ms)
+ GET / 200 in 20ms (next.js: 3ms, application-code: 17ms)
+ GET /register 200 in 53ms (next.js: 17ms, application-code: 36ms)
+ GET /chat 200 in 51ms (next.js: 3ms, proxy.ts: 12ms, application-code: 36ms)
+ GET /chat 200 in 50ms (next.js: 5ms, proxy.ts: 18ms, application-code: 28ms)
+ GET /upload 200 in 54ms (next.js: 4ms, proxy.ts: 9ms, application-code: 41ms)
+ GET /chat 200 in 56ms (next.js: 4ms, proxy.ts: 7ms, application-code: 45ms)
+ GET / 200 in 29ms (next.js: 5ms, application-code: 24ms)
+ GET /register 200 in 45ms (next.js: 3ms, application-code: 42ms)
+ GET /chat 200 in 85ms (next.js: 5ms, proxy.ts: 17ms, application-code: 63ms)
+ GET /chat 200 in 121ms (next.js: 4ms, proxy.ts: 28ms, application-code: 88ms)
+✓ Compiled in 257ms
+✓ Compiled in 78ms
+ GET /chat 200 in 399ms (next.js: 130ms, proxy.ts: 170ms, application-code: 99ms)
+ GET /chat 200 in 74ms (next.js: 3ms, proxy.ts: 30ms, application-code: 41ms)
+ GET /chat 200 in 67ms (next.js: 3ms, proxy.ts: 20ms, application-code: 43ms)
+ GET /chat 200 in 78ms (next.js: 4ms, proxy.ts: 20ms, application-code: 54ms)
+ GET /chat 200 in 90ms (next.js: 5ms, proxy.ts: 34ms, application-code: 51ms)
+ GET /chat 200 in 76ms (next.js: 3ms, proxy.ts: 27ms, application-code: 45ms)
+ GET /chat 200 in 76ms (next.js: 3ms, proxy.ts: 21ms, application-code: 51ms)
+ GET /chat 200 in 79ms (next.js: 5ms, proxy.ts: 28ms, application-code: 46ms)
+ GET /chat 200 in 76ms (next.js: 3ms, proxy.ts: 23ms, application-code: 50ms)
+ GET /chat 200 in 105ms (next.js: 5ms, proxy.ts: 28ms, application-code: 73ms)
+ GET /chat 200 in 74ms (next.js: 3ms, proxy.ts: 23ms, application-code: 47ms)
+ GET /chat 200 in 67ms (next.js: 3ms, proxy.ts: 21ms, application-code: 42ms)
+ GET /chat 200 in 76ms (next.js: 4ms, proxy.ts: 20ms, application-code: 52ms)
+ GET /chat 200 in 100ms (next.js: 5ms, proxy.ts: 30ms, application-code: 65ms)
+ GET /chat 200 in 103ms (next.js: 5ms, proxy.ts: 34ms, application-code: 65ms)
+ GET /chat 200 in 99ms (next.js: 4ms, proxy.ts: 33ms, application-code: 62ms)
+ GET /chat 200 in 134ms (next.js: 5ms, proxy.ts: 32ms, application-code: 97ms)
+ GET /chat 200 in 125ms (next.js: 13ms, proxy.ts: 43ms, application-code: 69ms)
+ GET /chat 200 in 94ms (next.js: 4ms, proxy.ts: 32ms, application-code: 58ms)
+ GET /chat 200 in 70ms (next.js: 3ms, proxy.ts: 28ms, application-code: 39ms)
+ GET /chat 200 in 69ms (next.js: 3ms, proxy.ts: 20ms, application-code: 46ms)
+ GET /chat 200 in 69ms (next.js: 4ms, proxy.ts: 26ms, application-code: 40ms)
+ GET /chat 200 in 59ms (next.js: 3ms, proxy.ts: 19ms, application-code: 38ms)
+ GET /chat 200 in 67ms (next.js: 3ms, proxy.ts: 19ms, application-code: 45ms)
+ GET /chat 200 in 67ms (next.js: 3ms, proxy.ts: 20ms, application-code: 45ms)
+ GET /chat 200 in 65ms (next.js: 3ms, proxy.ts: 24ms, application-code: 38ms)
+ GET /chat 200 in 60ms (next.js: 3ms, proxy.ts: 18ms, application-code: 39ms)
+ GET /chat 200 in 68ms (next.js: 3ms, proxy.ts: 19ms, application-code: 46ms)
+ GET /chat 200 in 67ms (next.js: 3ms, proxy.ts: 26ms, application-code: 38ms)
+ GET /chat 200 in 61ms (next.js: 4ms, proxy.ts: 20ms, application-code: 37ms)
+ GET /chat 200 in 68ms (next.js: 4ms, proxy.ts: 18ms, application-code: 46ms)
+ GET /chat 200 in 64ms (next.js: 3ms, proxy.ts: 19ms, application-code: 42ms)
+ GET /chat 200 in 64ms (next.js: 3ms, proxy.ts: 21ms, application-code: 40ms)
+ GET /chat 200 in 62ms (next.js: 3ms, proxy.ts: 20ms, application-code: 39ms)
+ GET /chat 200 in 63ms (next.js: 4ms, proxy.ts: 19ms, application-code: 41ms)
+ GET /chat 200 in 63ms (next.js: 3ms, proxy.ts: 19ms, application-code: 40ms)
+ GET /chat 200 in 64ms (next.js: 3ms, proxy.ts: 20ms, application-code: 41ms)
+ GET /chat 200 in 72ms (next.js: 3ms, proxy.ts: 19ms, application-code: 50ms)
+ GET /chat 200 in 62ms (next.js: 3ms, proxy.ts: 19ms, application-code: 40ms)
+ GET /chat 200 in 61ms (next.js: 3ms, proxy.ts: 19ms, application-code: 38ms)
+ GET /chat 200 in 61ms (next.js: 3ms, proxy.ts: 19ms, application-code: 39ms)
+ GET /chat 200 in 65ms (next.js: 3ms, proxy.ts: 20ms, application-code: 42ms)
+ GET /chat 200 in 64ms (next.js: 3ms, proxy.ts: 20ms, application-code: 41ms)
+ GET /chat 200 in 63ms (next.js: 3ms, proxy.ts: 20ms, application-code: 40ms)
+ GET /chat 200 in 55ms (next.js: 3ms, proxy.ts: 19ms, application-code: 33ms)
+ GET /chat 200 in 172ms (next.js: 5ms, proxy.ts: 12ms, application-code: 156ms)
+✓ Compiled in 174ms
+ GET /chat 200 in 852ms (next.js: 343ms, proxy.ts: 219ms, application-code: 290ms)
+ GET / 200 in 223ms (next.js: 131ms, application-code: 92ms)
+ GET /upload 200 in 86ms (next.js: 22ms, proxy.ts: 12ms, application-code: 52ms)
+ GET /chat 200 in 46ms (next.js: 3ms, proxy.ts: 9ms, application-code: 34ms)
+ POST /api/chat 200 in 795ms (next.js: 539ms, application-code: 256ms)
+ GET / 200 in 265ms (next.js: 4ms, application-code: 262ms)
+ GET /chat 200 in 106ms (next.js: 6ms, proxy.ts: 14ms, application-code: 87ms)
+  Reload env: .env
+ GET /chat 200 in 471ms (next.js: 258ms, proxy.ts: 123ms, application-code: 90ms)
+✓ Compiled in 41ms
+✓ Compiled in 36ms
+ GET /chat 200 in 1127ms (next.js: 143ms, proxy.ts: 235ms, application-code: 749ms)
+ GET /chat 200 in 428ms (next.js: 96ms, proxy.ts: 260ms, application-code: 73ms)
+ GET /chat 200 in 72ms (next.js: 4ms, proxy.ts: 24ms, application-code: 44ms)
+ GET /chat 200 in 65ms (next.js: 3ms, proxy.ts: 22ms, application-code: 40ms)
+ GET /chat 200 in 77ms (next.js: 3ms, proxy.ts: 20ms, application-code: 53ms)
+ GET /chat 200 in 94ms (next.js: 5ms, proxy.ts: 30ms, application-code: 59ms)
+ GET /chat 200 in 100ms (next.js: 4ms, proxy.ts: 29ms, application-code: 67ms)
+ GET /chat 200 in 82ms (next.js: 5ms, proxy.ts: 31ms, application-code: 46ms)
+ GET /chat 200 in 68ms (next.js: 4ms, proxy.ts: 21ms, application-code: 42ms)
+ GET /chat 200 in 68ms (next.js: 3ms, proxy.ts: 22ms, application-code: 43ms)
+ GET /chat 200 in 80ms (next.js: 5ms, proxy.ts: 22ms, application-code: 53ms)
+ GET /chat 200 in 72ms (next.js: 3ms, proxy.ts: 28ms, application-code: 41ms)
+ GET /chat 200 in 62ms (next.js: 3ms, proxy.ts: 20ms, application-code: 39ms)
+ GET /chat 200 in 60ms (next.js: 3ms, proxy.ts: 20ms, application-code: 37ms)
+ GET /chat 200 in 69ms (next.js: 4ms, proxy.ts: 19ms, application-code: 47ms)
+ GET /chat 200 in 85ms (next.js: 4ms, proxy.ts: 25ms, application-code: 57ms)
+ GET /chat 200 in 85ms (next.js: 5ms, proxy.ts: 25ms, application-code: 56ms)
+ GET /chat 200 in 72ms (next.js: 4ms, proxy.ts: 28ms, application-code: 40ms)
+ GET /chat 200 in 59ms (next.js: 3ms, proxy.ts: 19ms, application-code: 37ms)
+ GET /chat 200 in 72ms (next.js: 3ms, proxy.ts: 19ms, application-code: 50ms)
+ GET /chat 200 in 150ms (next.js: 4ms, proxy.ts: 31ms, application-code: 114ms)
+ GET /chat 200 in 144ms (next.js: 7ms, proxy.ts: 37ms, application-code: 99ms)
+ GET /chat 200 in 121ms (next.js: 5ms, proxy.ts: 56ms, application-code: 60ms)
+ GET /chat 200 in 104ms (next.js: 5ms, proxy.ts: 32ms, application-code: 67ms)
+ GET /chat 200 in 100ms (next.js: 5ms, proxy.ts: 28ms, application-code: 67ms)
+ GET /chat 200 in 82ms (next.js: 4ms, proxy.ts: 31ms, application-code: 47ms)
+ GET /chat 200 in 83ms (next.js: 3ms, proxy.ts: 24ms, application-code: 56ms)
+ GET /chat 200 in 99ms (next.js: 5ms, proxy.ts: 35ms, application-code: 60ms)
+ GET /chat 200 in 83ms (next.js: 4ms, proxy.ts: 26ms, application-code: 54ms)
+ GET /chat 200 in 60ms (next.js: 3ms, proxy.ts: 26ms, application-code: 31ms)
+✓ Compiled in 87ms
+ GET /chat 200 in 610ms (next.js: 115ms, proxy.ts: 253ms, application-code: 241ms)
+ GET /chat 200 in 210ms (next.js: 3ms, proxy.ts: 175ms, application-code: 31ms)
+  Reload env: .env
+ GET /chat 200 in 311ms (next.js: 92ms, proxy.ts: 138ms, application-code: 81ms)
+ GET /chat 200 in 300ms (next.js: 7ms, proxy.ts: 14ms, application-code: 279ms)
+ GET /chat 200 in 18ms (next.js: 3ms, proxy.ts: 8ms, application-code: 7ms)
+ GET /chat 200 in 54ms (next.js: 3ms, proxy.ts: 9ms, application-code: 43ms)
+ GET /chat 200 in 73ms (next.js: 4ms, proxy.ts: 13ms, application-code: 56ms)
+ GET / 200 in 263ms (next.js: 129ms, application-code: 134ms)
+ GET /chat 200 in 48ms (next.js: 4ms, proxy.ts: 8ms, application-code: 36ms)
+ GET / 200 in 50ms (next.js: 3ms, application-code: 47ms)
+ GET /chat 200 in 52ms (next.js: 3ms, proxy.ts: 10ms, application-code: 39ms)
+ GET / 200 in 34ms (next.js: 3ms, application-code: 31ms)
+ GET /chat 200 in 51ms (next.js: 4ms, proxy.ts: 11ms, application-code: 36ms)
+ POST /api/chat 200 in 346ms (next.js: 75ms, application-code: 270ms)
+✓ Compiled in 48ms
+ GET /chat 200 in 361ms (next.js: 148ms, proxy.ts: 101ms, application-code: 112ms)
+ GET /chat 200 in 286ms (next.js: 15ms, proxy.ts: 212ms, application-code: 58ms)
+ GET /chat 200 in 486ms (next.js: 134ms, proxy.ts: 136ms, application-code: 216ms)
+ GET /chat 200 in 477ms (next.js: 199ms, proxy.ts: 128ms, application-code: 150ms)
+ GET /chat 200 in 474ms (next.js: 242ms, proxy.ts: 125ms, application-code: 107ms)
+ GET /chat 200 in 508ms (next.js: 104ms, proxy.ts: 192ms, application-code: 212ms)
+ GET /chat 200 in 507ms (next.js: 155ms, proxy.ts: 192ms, application-code: 160ms)
+ GET /chat 200 in 496ms (next.js: 198ms, proxy.ts: 186ms, application-code: 112ms)
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+✓ Compiled in 185ms
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ GET /chat 500 in 1735ms (next.js: 1330ms, proxy.ts: 158ms, application-code: 247ms)
+ GET /chat 500 in 1740ms (next.js: 1521ms, proxy.ts: 160ms, application-code: 59ms)
+ GET /chat 500 in 1733ms (next.js: 1528ms, proxy.ts: 155ms, application-code: 50ms)
+ GET /chat 500 in 1724ms (next.js: 1537ms, proxy.ts: 147ms, application-code: 40ms)
+ GET /chat 500 in 1740ms (next.js: 1550ms, proxy.ts: 159ms, application-code: 31ms)
+ GET /chat 500 in 1746ms (next.js: 1563ms, proxy.ts: 161ms, application-code: 22ms)
+⨯ ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  [90m2 |[0m [36mimport[0m { redirect } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m3 |[0m [36mimport[0m { auth, signOut } [36mfrom[0m [32m"../../lib/auth"[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { [33mChatClient[0m } [36mfrom[0m [32m"./chat-client"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m
+  [90m6 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mChatPage[0m() {
+  [90m7 |[0m   [36mconst[0m session = [36mawait[0m auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ GET /chat 500 in 28ms (next.js: 9ms, proxy.ts: 11ms, application-code: 9ms)
+[browser] Uncaught Error: ./src/app/chat/page.tsx:4:1
+Module not found: Can't resolve './chat-client'
+  2 | import { redirect } from "next/navigation";
+  3 | import { auth, signOut } from "../../lib/auth";
+> 4 | import { ChatClient } from "./chat-client";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default async function ChatPage() {
+  7 |   const session = await auth();
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/chat/page.tsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/app/chat/page.tsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+✓ Compiled in 325ms
+ GET /chat 200 in 577ms (next.js: 121ms, proxy.ts: 202ms, application-code: 254ms)
+✓ Compiled in 199ms
+ GET /chat 200 in 800ms (next.js: 124ms, proxy.ts: 242ms, application-code: 434ms)
+ GET /chat 200 in 799ms (next.js: 165ms, proxy.ts: 241ms, application-code: 394ms)
+ GET /chat 200 in 792ms (next.js: 196ms, proxy.ts: 235ms, application-code: 362ms)
+ GET /chat 200 in 733ms (next.js: 223ms, proxy.ts: 178ms, application-code: 332ms)
+ GET /chat 200 in 610ms (next.js: 259ms, proxy.ts: 231ms, application-code: 120ms)
+⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.111:3000
+- Environments: .env
+✓ Ready in 898ms
+Creating turbopack project { dir: 'C:\\Users\\User\\trainee-knowledge-assistant', testMode: true }
+
+ GET /chat 200 in 945ms (next.js: 145ms, proxy.ts: 427ms, application-code: 373ms)
+✓ Compiled in 67ms
+ GET /chat 200 in 459ms (next.js: 130ms, proxy.ts: 116ms, application-code: 212ms)
+ GET /chat 200 in 458ms (next.js: 151ms, proxy.ts: 115ms, application-code: 191ms)
+ GET /chat 200 in 464ms (next.js: 99ms, proxy.ts: 118ms, application-code: 248ms)
+ GET /chat 200 in 458ms (next.js: 172ms, proxy.ts: 115ms, application-code: 172ms)
+ GET /chat 200 in 459ms (next.js: 200ms, proxy.ts: 114ms, application-code: 145ms)
+ GET /chat 200 in 459ms (next.js: 224ms, proxy.ts: 114ms, application-code: 121ms)
+ GET /chat 200 in 110ms (next.js: 8ms, proxy.ts: 50ms, application-code: 52ms)
+✓ Compiled in 180ms
+ GET /chat 200 in 212ms (next.js: 90ms, proxy.ts: 67ms, application-code: 56ms)
+✓ Compiled in 56ms
+ GET /chat 200 in 228ms (next.js: 120ms, proxy.ts: 55ms, application-code: 53ms)
+ GET /chat 200 in 157ms (next.js: 4ms, proxy.ts: 16ms, application-code: 137ms)
+ POST /api/chat 200 in 720ms (next.js: 96ms, application-code: 623ms)
+  Reload env: .env
+ GET /chat 200 in 158ms (next.js: 55ms, proxy.ts: 46ms, application-code: 57ms)
