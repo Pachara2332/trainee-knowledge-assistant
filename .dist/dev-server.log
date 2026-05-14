@@ -878,3 +878,5 @@ Chroma RAG skipped: Error [ChromaConnectionError]: Failed to connect to chromadb
   }
 }
  POST /api/chat 200 in 7.9s (next.js: 153ms, application-code: 7.7s)
+ GET / 200 in 211ms (next.js: 120ms, application-code: 91ms)
+ GET /chat 200 in 116ms (next.js: 9ms, proxy.ts: 23ms, application-code: 84ms)

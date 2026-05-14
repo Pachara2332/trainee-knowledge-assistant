@@ -1,111 +1,120 @@
 # Knowledge Assistant
 
-Knowledge Assistant is a protected AI chat web app for asking questions with optional TXT/PDF document context. It supports login, file validation, streaming Gemini responses, markdown rendering, citations, token counting, new chat, and local chat history.
+เว็บแอป **ผู้ช่วยความรู้แบบมีการยืนยันตัวตน** สำหรับสนทนากับ AI พร้อมแนบเอกสาร **TXT หรือ PDF** เพื่อใช้เป็นบริบทคำตอบ รองรับการสตรีมคำตอบ แสดง Markdown นับโทเคนรายข้อความและรวมต่อเซสชัน มีหน้าอัปโหลด ประวัติแชตในเครื่อง และ RAG ผ่าน **ChromaDB** สำหรับไฟล์ TXT เมื่อตั้งค่า `CHROMA_URL`
+
+โปรเจกต์นี้เริ่มจาก **Create Next App** (boilerplate Next.js) แล้วพัฒนาต่อเอง — รายละเอียดการใช้ AI อยู่ใน `AI_JOURNAL.md` และเหตุผลเชิงสถาปัตยกรรมใน `DECISIONS.md`
+
+---
 
 ## Tech Stack
 
-- Framework: Next.js 16 App Router, React 19, TypeScript
-- Auth: NextAuth credentials provider, bcrypt password hashing
-- Database: PostgreSQL for user accounts
-- Vector DB: ChromaDB (RAG for TXT via chunk + Gemini embeddings + retrieval when `CHROMA_URL` is set)
-- AI: Google Gemini API
-- Infra: Docker Compose
+- **Frontend / Backend:** Next.js 16 (App Router), React 19, TypeScript, Route Handlers (`src/app/api/*`)
+- **การยืนยันตัวตน:** NextAuth (Credentials), รหัสผ่านผ่าน **bcrypt**
+- **ฐานข้อมูล:** PostgreSQL (เก็บบัญชีผู้ใช้)
+- **Vector DB:** ChromaDB (Docker) — ใช้กับ pipeline **chunk → embedding (Gemini) → retrieval** สำหรับ **TXT** เมื่อมี `CHROMA_URL`
+- **AI:** Google Gemini (รองรับ fallback ผู้ให้บริการอื่นผ่าน `src/lib/chat/ai.ts` เมื่อตั้งค่า key)
+- **การรัน:** Docker Compose (`docker compose up`)
+
+---
 
 ## Setup & Run
 
-1-command setup:
+### รันด้วย Docker (คำสั่งเดียวตามโจทย์)
 
 ```bash
 docker compose up --build
 ```
 
-Local development:
+จาก `docker-compose.yml` แอปถูก map ออกมาที่พอร์ต **3001** บนเครื่อง host (ภายใน container ยังเป็น port 3000):
+
+```txt
+http://localhost:3001
+```
+
+### พัฒนาในเครื่อง (ไม่ผ่าน Docker สำหรับแอป)
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open:
+ค่าเริ่มต้นของ `next dev` มักเป็น `http://localhost:3000` — ตั้ง `NEXTAUTH_URL` ให้ตรงกับ URL ที่ใช้จริง
 
-```txt
-http://localhost:3000
-```
+### ตัวแปรสภาพแวดล้อมที่จำเป็น
 
-Required environment variables:
+คัดลอกจาก `.env.example` แล้วปรับค่า:
 
 ```env
 GEMINI_API_KEY=your_gemini_key
 GEMINI_API_KEYS=
 GEMINI_MODEL=gemini-2.5-flash
 NEXTAUTH_SECRET=your_secret
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=http://localhost:3001
 AUTH_EMAIL=admin@example.com
 AUTH_PASSWORD_HASH=
 DATABASE_URL=postgresql://admin:password@db:5432/knowledge_assistant
 CHROMA_URL=http://chromadb:8000
 ```
 
-If `gemini-2.5-flash` is not available for your API key, set:
+- รันแอป **ใน Docker:** ใช้ `CHROMA_URL=http://chromadb:8000` และ `DATABASE_URL` ชี้ไปที่ service `db` ตามตัวอย่าง
+- รัน **`npm run dev` บนเครื่อง:** ถ้า Chroma รันที่เครื่องเดียวกัน ใช้ `CHROMA_URL=http://localhost:8000`
+
+หากโมเดล `gemini-2.5-flash` ใช้กับ key ของคุณไม่ได้ ให้ตั้งเช่น:
 
 ```env
 GEMINI_MODEL=gemini-2.0-flash
 ```
 
+### การทดสอบ (Unit test)
+
+```bash
+npm run test
+npm run test:coverage
+```
+
+รายงาน coverage และเกณฑ์ขั้นต่ำกำหนดใน `vitest.config.ts` (ครอบคลุมโมดูล `src/lib` ชุดที่ระบุ ไม่ใช่ทุกไฟล์ใน repo ทั้งหมด)
+
+---
+
 ## Features Done
 
-- [x] Login + Protected Routes
-- [x] Register user with bcrypt password hashing
-- [x] File Upload
-- [x] TXT/PDF type validation
-- [x] File size validation
-- [x] Filename sanitization
-- [x] Chat with AI
-- [x] Streaming response
-- [x] Timeout and API error handling
-- [x] Chat with uploaded file context
-- [x] Markdown rendering
-- [x] Citation prompt using uploaded filename
-- [x] Token usage counter per chat session
-- [x] New chat
-- [x] Conversation history
-- [x] Rate limiting
-- [x] API key rotation via `GEMINI_API_KEYS`
+- [x] หน้า Login + เส้นทางที่ต้องล็อกอิน (เช่น `/chat`, `/upload`)
+- [x] ลงทะเบียนผู้ใช้ + เข้ารหัสรหัสผ่านด้วย bcrypt
+- [x] อัปโหลดไฟล์ **PDF / TXT** (มีหน้า `/upload` และแนบไฟล์ในหน้าแชตได้)
+- [x] ตรวจชนิดไฟล์ ขนาด และ sanitize ชื่อไฟล์
+- [x] แชทกับ AI + จัดการ error และ timeout
+- [x] แชทโดยอ้างอิงเอกสารที่แนบ (TXT: RAG ผ่าน Chroma เมื่อตั้ง `CHROMA_URL`; PDF: ส่งแบบ inline ไป Gemini)
+- [x] แสดงการใช้โทเคน **ต่อข้อความ** และ **รวมต่อเซสชันแชต**
+- [x] สตรีมคำตอบ (SSE)
+- [x] แสดง Markdown ในข้อความผู้ช่วย
+- [x] แนว citation ผ่าน prompt ให้อ้าง `[ชื่อไฟล์]`
+- [x] แชตใหม่ + ประวัติการสนทนา (เก็บใน `localStorage`)
+- [x] Rate limiting ฝั่ง API
+- [x] หมุน API key Gemini ผ่าน `GEMINI_API_KEYS`
 - [x] Docker Compose + healthcheck
-- [x] RAG with Vector DB (TXT: chunk + Gemini embeddings + Chroma retrieval; PDF unchanged)
-- [x] Unit tests (`npm run test:coverage`, Vitest + V8; coverage thresholds on core `src/lib` modules listed in `vitest.config.ts`)
+- [x] RAG + Vector DB สำหรับ **TXT** (chunk, embedding, retrieval)
+- [x] Unit tests (Vitest + coverage ตาม config)
+
+---
 
 ## Architecture
 
-The app uses Next.js App Router with Server Components for protected pages and Client Components for interactive chat state.
+- **หน้าเว็บ:** App Router — หน้าที่ต้องล็อกอินตรวจ session ฝั่งเซิร์ฟเวอร์ ส่วน UI แชตเป็น Client Component
+- **`src/app/chat/`** — ประสบการณ์แชต แนบไฟล์ รับสตรีม SSE
+- **`src/app/upload/`** — หน้าอัปโหลดเอกสาร
+- **`src/app/api/chat/route.ts`** — ตรวจสอบสิทธิ์ จำกัดความถี่ ตรวจ payload แล้วสตรีมคำตอบ
+- **`src/lib/auth.ts`**, **`src/lib/users.ts`** — NextAuth และข้อมูลผู้ใช้ใน PostgreSQL
+- **`src/lib/chat/`** — validation, Gemini, ชั้นบริการ AI รวม
+- **`src/lib/rag/`** — แบ่ง chunk, embedding, เชื่อม Chroma, ประกอบ context สำหรับ TXT
+- **`src/components/chat/`** — คอมโพเนนต์ UI แชต
 
-- `src/app/chat/page.tsx`: protected chat page; redirects unauthenticated users to login
-- `src/app/chat/chat-client.tsx`: client-side chat state, new chat, local history, file attachment handling, and SSE consumption
-- `src/app/api/chat/route.ts`: authenticated chat API route with rate limiting, request validation, and Server-Sent Events streaming
-- `src/lib/auth.ts`: NextAuth configuration
-- `src/lib/users.ts`: user repository and PostgreSQL access
-- `src/lib/chat/gemini.ts`: Gemini service layer
-- `src/lib/chat/validation.ts`: message and attachment validation
-- `src/components/chat/*`: reusable chat UI components
+ไฟล์ที่อัปโหลด **ยังไม่ถูกเก็บถาวรในเซิร์ฟเวอร์** — ใช้เป็นบริบทต่อคำขอแชตเป็นหลัก
 
-Current file handling:
-
-- TXT files are read in the browser and sent as text context.
-- PDF files are converted to base64 in the browser and sent to Gemini as inline PDF data.
-- Uploaded files are not permanently stored yet.
-
-Recommended production storage:
-
-- Store original PDF/TXT files in object storage such as Cloudflare R2, AWS S3, Supabase Storage, or Google Cloud Storage.
-- Store file metadata in PostgreSQL: owner user id, original filename, sanitized storage key, MIME type, size, upload time.
-- Store extracted chunks and embeddings in a vector DB such as ChromaDB, pgvector, Pinecone, Qdrant, or Weaviate.
-- For this project, Cloudflare R2 is a good fit if you want cheap S3-compatible storage; PostgreSQL should still keep metadata and ownership.
+---
 
 ## Known Issues
 
-- RAG over Chroma applies to **TXT** attachments when `CHROMA_URL` is set; **PDF** still uses inline PDF to Gemini (no vector indexing yet).
-- Chat history is stored in browser `localStorage`, not PostgreSQL, so it is device/browser-specific.
-- Uploaded files are used only for the current request and are not persisted.
-- PDF quality depends on Gemini's inline PDF handling; there is no separate PDF text extraction pipeline yet.
-- Unit tests use Vitest; coverage thresholds apply to the file globs in `vitest.config.ts` (not the entire monorepo).
-- In-memory rate limiting resets when the server restarts and is not shared across multiple instances.
+- **RAG:** ทำเต็มรูปแบบกับ **TXT** เมื่อมี Chroma; **PDF** ยังไม่ได้แยกข้อความมา chunk/embed ลง vector DB
+- **ประวัติแชต:** อยู่ใน `localStorage` ต่อเครื่อง/ต่อบราวเซอร์ ไม่ sync ผ่านบัญชีบนฐานข้อมูล
+- **Rate limit:** เก็บในหน่วยความจำของโปรเซส — รีสตาร์ทแล้วรีเซ็ต และไม่แชร์ระหว่างหลาย instance
+- **Coverage:** เกณฑ์ใน `vitest.config.ts` จำกัดชุดไฟล์ที่วัด — ไม่ได้หมายถึง coverage ทั้ง monorepo ทุกไฟล์
