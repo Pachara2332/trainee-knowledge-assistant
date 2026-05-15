@@ -9,6 +9,9 @@ export const {
   signIn,
   signOut,
 } = NextAuth({
+  trustHost: true,
+  secret:
+    process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim(),
   pages: {
     signIn: "/login",
   },
@@ -22,48 +25,48 @@ export const {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const email =
-          typeof credentials.email === "string"
-            ? credentials.email.trim().toLowerCase()
-            : "";
-        const password =
-          typeof credentials.password === "string" ? credentials.password : "";
-        const expectedEmail = process.env.AUTH_EMAIL?.trim().toLowerCase();
+        try {
+          const email =
+            typeof credentials.email === "string"
+              ? credentials.email.trim().toLowerCase()
+              : "";
+          const password =
+            typeof credentials.password === "string" ? credentials.password : "";
+          const expectedEmail = process.env.AUTH_EMAIL?.trim().toLowerCase();
 
-        if (!email || !password) {
+          if (!email || !password) {
+            return null;
+          }
+
+          const user = await findUserByEmail(email);
+
+          if (user && (await bcrypt.compare(password, user.password_hash))) {
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name ?? "Trainee",
+            };
+          }
+
+          const expectedPasswordHash = process.env.AUTH_PASSWORD_HASH;
+          const passwordMatches = expectedPasswordHash
+            ? await bcrypt.compare(password, expectedPasswordHash)
+            : false;
+
+          if (email === expectedEmail && passwordMatches) {
+            return {
+              id: email,
+              email,
+              name: "Trainee",
+            };
+          }
+
+          return null;
+        } catch (error) {
+          console.error("[auth] authorize failed", error);
           return null;
         }
-
-        const user = await findUserByEmail(email);
-
-        if (user && (await bcrypt.compare(password, user.password_hash))) {
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name ?? "Trainee",
-          };
-        }
-
-        const expectedPasswordHash = process.env.AUTH_PASSWORD_HASH;
-        const passwordMatches = expectedPasswordHash
-          ? await bcrypt.compare(password, expectedPasswordHash)
-          : false;
-
-        if (email === expectedEmail && passwordMatches) {
-          return {
-            id: email,
-            email,
-            name: "Trainee",
-          };
-        }
-
-        return null;
       },
     }),
   ],
-  callbacks: {
-    authorized({ auth }) {
-      return Boolean(auth?.user);
-    },
-  },
 });

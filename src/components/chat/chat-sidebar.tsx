@@ -51,7 +51,7 @@ export function ChatSidebar({ email }: { email?: string | null }) {
         <form
           action={async () => {
             "use server";
-            await signOut({ redirectTo: "/login" });
+            await signOut({ redirectTo: "/login?status=logged-out" });
           }}
         >
           <button className="comic-impact w-full border-2 border-[#1C1B1A] bg-[#8E3A3A] px-4 py-3 text-sm font-black uppercase tracking-wider text-white shadow-[5px_5px_0_#1C1B1A]">

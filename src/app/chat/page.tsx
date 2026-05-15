@@ -1,17 +1,25 @@
 import { redirect } from "next/navigation";
+import { AuthStatusModal } from "../../components/auth/auth-status-modal";
 import { ChatSidebar } from "../../components/chat/chat-sidebar";
 import { auth } from "../../lib/auth";
 import { ChatClient } from "./chat-client";
 
-export default async function ChatPage() {
+export default async function ChatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const session = await auth();
 
   if (!session?.user) {
     redirect("/login");
   }
 
+  const { status } = await searchParams;
+
   return (
     <main className="relative h-screen overflow-hidden bg-[#18202B] text-white">
+      <AuthStatusModal status={status} />
       <div className="pointer-events-none fixed inset-0 hero-city opacity-50" />
       <div className="pointer-events-none fixed inset-0 hero-noise opacity-80" />
       <div className="pointer-events-none fixed inset-0 hero-halftone opacity-30" />
