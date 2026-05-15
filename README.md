@@ -8,7 +8,7 @@
 
 ## Tech Stack
 
-- **Frontend / Backend:** Next.js 16 (App Router), React 19, TypeScript, Route Handlers (`src/app/api/*`)
+- **Frontend / Backend:** Next.js 16 (App Router), TypeScript, Route Handlers (`src/app/api/*`)
 - **การยืนยันตัวตน:** NextAuth (Credentials), รหัสผ่านผ่าน **bcrypt**
 - **ฐานข้อมูล:** PostgreSQL (เก็บบัญชีผู้ใช้)
 - **Vector DB:** ChromaDB (Docker) — ใช้กับ pipeline **chunk → embedding (Gemini) → retrieval** สำหรับ **TXT** เมื่อมี `CHROMA_URL`
