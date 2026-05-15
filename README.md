@@ -50,8 +50,6 @@ GEMINI_API_KEYS=
 GEMINI_MODEL=gemini-2.5-flash
 NEXTAUTH_SECRET=your_secret
 NEXTAUTH_URL=http://localhost:3001
-AUTH_EMAIL=admin@example.com
-AUTH_PASSWORD_HASH=
 DATABASE_URL=postgresql://admin:password@db:5432/knowledge_assistant
 CHROMA_URL=http://chromadb:8000
 ```
