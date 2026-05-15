@@ -1,12 +1,14 @@
-import { AuthError } from "next-auth";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth, signIn } from "../../lib/auth";
+import { redirect, unstable_rethrow } from "next/navigation";
+import { AuthStatusModal } from "../../components/auth/auth-status-modal";
+import { PasswordField } from "../../components/auth/password-field";
+import { auth } from "../../lib/auth";
+import { signInWithCredentials } from "../../lib/sign-in-credentials";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; status?: string }>;
 }) {
   const session = await auth();
 
@@ -14,10 +16,15 @@ export default async function LoginPage({
     redirect("/chat");
   }
 
-  const { error } = await searchParams;
+  const { error, status } = await searchParams;
+  const errorMessage = error ? decodeURIComponent(error) : undefined;
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#18202B] px-6 py-12 text-white">
+      <AuthStatusModal
+        status={error ? "login-error" : status}
+        detail={errorMessage}
+      />
       <div className="pointer-events-none fixed inset-0 hero-noise opacity-70" />
       <div className="pointer-events-none fixed inset-0 hero-halftone opacity-35" />
       <section className="relative mx-auto grid min-h-[calc(100vh-6rem)] w-full max-w-6xl items-center gap-10 lg:grid-cols-[1fr_0.9fr]">
@@ -46,17 +53,18 @@ export default async function LoginPage({
             "use server";
 
             try {
-              await signIn("credentials", {
-                email: formData.get("email"),
-                password: formData.get("password"),
-                redirectTo: "/chat",
+              await signInWithCredentials({
+                email: String(formData.get("email") ?? ""),
+                password: String(formData.get("password") ?? ""),
+                afterLoginPath: "/chat?status=logged-in",
               });
             } catch (error) {
-              if (error instanceof AuthError) {
-                redirect("/login?error=CredentialsSignin");
-              }
-
-              throw error;
+              unstable_rethrow(error);
+              const message =
+                error instanceof Error
+                  ? encodeURIComponent(error.message)
+                  : "Sign%20in%20failed";
+              redirect(`/login?error=${message}`);
             }
           }}
         >
@@ -76,20 +84,11 @@ export default async function LoginPage({
             />
           </label>
 
-          <label className="flex flex-col gap-2 text-sm font-black uppercase tracking-wider">
-            Password
-            <input
-              className="h-12 border-2 border-[#1C1B1A] bg-[#E7E1D6] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#4F6F86]"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-          </label>
+          <PasswordField autoComplete="current-password" />
 
           {error ? (
             <p className="border-2 border-[#8E3A3A] bg-red-50 px-3 py-2 text-sm font-bold text-[#8E3A3A]">
-              Invalid email or password.
+              {errorMessage || "Invalid email or password."}
             </p>
           ) : null}
 

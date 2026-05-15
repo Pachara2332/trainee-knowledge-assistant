@@ -1,6 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth, signIn } from "../../lib/auth";
+import { redirect, unstable_rethrow } from "next/navigation";
+import { AuthStatusModal } from "../../components/auth/auth-status-modal";
+import { PasswordField } from "../../components/auth/password-field";
+import { auth } from "../../lib/auth";
+import { signInWithCredentials } from "../../lib/sign-in-credentials";
 import { createUser } from "../../lib/users";
 
 function validateRegisterForm(formData: FormData) {
@@ -33,9 +36,14 @@ export default async function RegisterPage({
   }
 
   const { error } = await searchParams;
+  const errorMessage = error ? decodeURIComponent(error) : undefined;
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#18202B] px-6 py-10 text-white">
+      <AuthStatusModal
+        status={error ? "register-error" : undefined}
+        detail={errorMessage}
+      />
       <div className="pointer-events-none fixed inset-0 hero-noise opacity-70" />
       <div className="pointer-events-none fixed inset-0 hero-halftone opacity-35" />
       <section className="relative mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
@@ -69,11 +77,21 @@ export default async function RegisterPage({
               redirect(`/register?error=${message}`);
             }
 
-            await signIn("credentials", {
-              email: values.email,
-              password: values.password,
-              redirectTo: "/chat",
-            });
+            try {
+              await signInWithCredentials({
+                email: values.email,
+                password: values.password,
+                afterLoginPath: "/chat?status=logged-in",
+                onErrorPath: "/register",
+              });
+            } catch (error) {
+              unstable_rethrow(error);
+              const message =
+                error instanceof Error
+                  ? encodeURIComponent(error.message)
+                  : "Sign%20in%20after%20register%20failed";
+              redirect(`/register?error=${message}`);
+            }
           }}
         >
           <div className="absolute -right-4 -top-4 bg-[#4F6F86] px-4 py-2 text-sm font-black uppercase tracking-widest text-white shadow-[6px_6px_0_#1C1B1A]">
@@ -103,21 +121,15 @@ export default async function RegisterPage({
             />
           </label>
 
-          <label className="mb-5 flex flex-col gap-2 text-sm font-black uppercase tracking-wider">
-            Password
-            <input
-              className="h-12 border-2 border-[#1C1B1A] bg-[#E7E1D6] px-3 text-base font-semibold outline-none transition focus:bg-white focus:shadow-[5px_5px_0_#4F6F86]"
-              name="password"
-              type="password"
-              minLength={8}
-              autoComplete="new-password"
-              required
-            />
-          </label>
+          <PasswordField
+            autoComplete="new-password"
+            className="mb-5"
+            minLength={8}
+          />
 
           {error ? (
             <p className="mb-4 border-2 border-[#8E3A3A] bg-red-50 px-3 py-2 text-sm font-bold text-[#8E3A3A]">
-              {decodeURIComponent(error)}
+              {errorMessage}
             </p>
           ) : null}
 
