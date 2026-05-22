@@ -1,143 +1,27 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useRef, useState } from "react";
 import { ChatComposer } from "../../components/chat/chat-composer";
 import { ChatHistoryPanel } from "../../components/chat/chat-history-panel";
 import { toClientAttachment } from "../../components/chat/file-attachment";
 import { MessageList } from "../../components/chat/message-list";
 import { TokenUsageBadge } from "../../components/chat/token-usage-badge";
-import type {
-  ChatConversation,
-  ClientAttachment,
-  Message,
-  TokenUsage,
-} from "../../components/chat/types";
-
-const starterMessages: Message[] = [
-  {
-    id: "welcome",
-    role: "assistant",
-    content:
-      "**Console online.** Ask me anything, or attach a TXT/PDF so I can answer with document context and citations.",
-  },
-];
-const HISTORY_KEY = "knowledge-assistant.chat-conversations";
-
-type ConversationState = {
-  activeConversationId: string;
-  conversations: ChatConversation[];
-};
-
-function parseSseEvents(buffer: string) {
-  const events = buffer.split("\n\n");
-  const rest = events.pop() ?? "";
-
-  return {
-    events: events.map((event) => {
-      const name =
-        event
-          .split("\n")
-          .find((line) => line.startsWith("event:"))
-          ?.slice(6)
-          .trim() ?? "message";
-      const data = event
-        .split("\n")
-        .filter((line) => line.startsWith("data:"))
-        .map((line) => line.slice(5).trim())
-        .join("");
-
-      return { name, data };
-    }),
-    rest,
-  };
-}
-
-function createConversation(): ChatConversation {
-  return {
-    id: crypto.randomUUID(),
-    title: "New Chat",
-    messages: starterMessages,
-    updatedAt: Date.now(),
-  };
-}
-
-function createInitialConversation(): ChatConversation {
-  return {
-    id: "initial-chat",
-    title: "New Chat",
-    messages: starterMessages,
-    updatedAt: 0,
-  };
-}
-
-function getConversationTitle(messages: Message[]) {
-  const firstUserMessage = messages.find((message) => message.role === "user");
-  const title = firstUserMessage?.content.trim() || "New Chat";
-  return title.length > 36 ? `${title.slice(0, 33)}...` : title;
-}
-
-function loadConversationState(): ConversationState {
-  const fallbackConversation = createInitialConversation();
-
-  if (typeof window === "undefined") {
-    return {
-      activeConversationId: fallbackConversation.id,
-      conversations: [fallbackConversation],
-    };
-  }
-
-  const saved = window.localStorage.getItem(HISTORY_KEY);
-
-  if (!saved) {
-    return {
-      activeConversationId: fallbackConversation.id,
-      conversations: [fallbackConversation],
-    };
-  }
-
-  try {
-    const parsed = JSON.parse(saved) as ConversationState;
-    const conversations = Array.isArray(parsed.conversations)
-      ? parsed.conversations.filter(
-          (conversation) =>
-            conversation &&
-            typeof conversation.id === "string" &&
-            Array.isArray(conversation.messages),
-        )
-      : [];
-
-    if (conversations.length === 0) {
-      return {
-        activeConversationId: fallbackConversation.id,
-        conversations: [fallbackConversation],
-      };
-    }
-
-    return {
-      activeConversationId:
-        conversations.find((conversation) => conversation.id === parsed.activeConversationId)
-          ?.id ?? conversations[0].id,
-      conversations,
-    };
-  } catch {
-    window.localStorage.removeItem(HISTORY_KEY);
-    return {
-      activeConversationId: fallbackConversation.id,
-      conversations: [fallbackConversation],
-    };
-  }
-}
+import type { ClientAttachment, Message, TokenUsage } from "../../components/chat/types";
+import { parseSseEvents } from "./sse-events";
+import { useChatConversations } from "./use-chat-conversations";
 
 export function ChatClient({ email }: { email?: string | null }) {
-  const [conversationState, setConversationState] = useState<ConversationState>(() => {
-    const conversation = createInitialConversation();
-
-    return {
-      activeConversationId: conversation.id,
-      conversations: [conversation],
-    };
-  });
-  const [hasLoadedHistory, setHasLoadedHistory] = useState(false);
+  const {
+    activeConversation,
+    conversations,
+    messages,
+    totalTokens,
+    createNewConversation,
+    deleteConversation,
+    selectConversation,
+    updateConversationMessages,
+    updateDraftTitle,
+  } = useChatConversations(email);
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const [attachedFile, setAttachedFile] = useState<ClientAttachment | null>(null);
@@ -145,156 +29,34 @@ export function ChatClient({ email }: { email?: string | null }) {
   const abortRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setConversationState(loadConversationState());
-      setHasLoadedHistory(true);
-    }, 0);
+  function resetComposer() {
+    setInput("");
+    setError("");
+    setAttachedFile(null);
 
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  useEffect(() => {
-    if (!hasLoadedHistory) {
-      return;
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
-
-    window.localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify({
-        ...conversationState,
-        conversations: conversationState.conversations.slice(0, 20),
-      }),
-    );
-  }, [conversationState, hasLoadedHistory]);
-
-  const activeConversation =
-    conversationState.conversations.find(
-      (conversation) => conversation.id === conversationState.activeConversationId,
-    ) ?? conversationState.conversations[0];
-  const messages = activeConversation?.messages ?? starterMessages;
-
-  const totalTokens = useMemo(
-    () =>
-      messages.reduce(
-        (total, message) => total + (message.usage?.totalTokens ?? 0),
-        0,
-      ),
-    [messages],
-  );
-
-  function updateConversationMessages(
-    conversationId: string,
-    updater: (messages: Message[]) => Message[],
-  ) {
-    setConversationState((current) => ({
-      ...current,
-      conversations: current.conversations
-        .map((conversation) => {
-          if (conversation.id !== conversationId) {
-            return conversation;
-          }
-
-          const nextMessages = updater(conversation.messages);
-
-          return {
-            ...conversation,
-            title: getConversationTitle(nextMessages),
-            messages: nextMessages.slice(-40),
-            updatedAt: Date.now(),
-          };
-        })
-        .sort((a, b) => b.updatedAt - a.updatedAt),
-    }));
   }
 
   function handleNewChat() {
-    const conversation = createConversation();
-
-    setConversationState((current) => ({
-      activeConversationId: conversation.id,
-      conversations: [conversation, ...current.conversations].slice(0, 20),
-    }));
-    setInput("");
-    setError("");
-    setAttachedFile(null);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    createNewConversation();
+    resetComposer();
   }
 
   function handleSelectConversation(conversationId: string) {
-    setConversationState((current) => ({
-      ...current,
-      activeConversationId: conversationId,
-    }));
-    setError("");
-    setAttachedFile(null);
-    setInput("");
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    selectConversation(conversationId);
+    resetComposer();
   }
 
   function handleDeleteConversation(conversationId: string) {
-    setConversationState((current) => {
-      const remaining = current.conversations.filter(
-        (conversation) => conversation.id !== conversationId,
-      );
-
-      if (remaining.length === 0) {
-        const conversation = createInitialConversation();
-
-        return {
-          activeConversationId: conversation.id,
-          conversations: [conversation],
-        };
-      }
-
-      return {
-        activeConversationId:
-          current.activeConversationId === conversationId
-            ? remaining[0].id
-            : current.activeConversationId,
-        conversations: remaining,
-      };
-    });
-    setInput("");
-    setError("");
-    setAttachedFile(null);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    deleteConversation(conversationId);
+    resetComposer();
   }
 
   function handleInputChange(value: string) {
     setInput(value);
-
-    const draftTitle = value.trim();
-
-    setConversationState((current) => ({
-      ...current,
-      conversations: current.conversations.map((conversation) => {
-        if (
-          conversation.id !== current.activeConversationId ||
-          conversation.messages.some((message) => message.role === "user")
-        ) {
-          return conversation;
-        }
-
-        return {
-          ...conversation,
-          title: draftTitle
-            ? draftTitle.length > 36
-              ? `${draftTitle.slice(0, 33)}...`
-              : draftTitle
-            : "New Chat",
-        };
-      }),
-    }));
+    updateDraftTitle(value);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -462,7 +224,7 @@ export function ChatClient({ email }: { email?: string | null }) {
       </div>
 
       <ChatHistoryPanel
-        conversations={conversationState.conversations}
+        conversations={conversations}
         activeConversationId={activeConversation.id}
         isStreaming={isStreaming}
         onNewChat={handleNewChat}

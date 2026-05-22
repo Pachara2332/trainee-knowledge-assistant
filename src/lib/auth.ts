@@ -32,7 +32,6 @@ export const {
               : "";
           const password =
             typeof credentials.password === "string" ? credentials.password : "";
-          const expectedEmail = process.env.AUTH_EMAIL?.trim().toLowerCase();
 
           if (!email || !password) {
             return null;
@@ -45,19 +44,6 @@ export const {
               id: user.id,
               email: user.email,
               name: user.name ?? "Trainee",
-            };
-          }
-
-          const expectedPasswordHash = process.env.AUTH_PASSWORD_HASH;
-          const passwordMatches = expectedPasswordHash
-            ? await bcrypt.compare(password, expectedPasswordHash)
-            : false;
-
-          if (email === expectedEmail && passwordMatches) {
-            return {
-              id: email,
-              email,
-              name: "Trainee",
             };
           }
 
