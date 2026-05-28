@@ -1,7 +1,7 @@
 import type { ChatAttachment, ChatMessage, TokenUsage } from "./types";
 import { fallbackUsage, streamGeminiAnswer } from "./gemini";
 
-type ProviderName = "Gemini" | "OpenRouter" | "Groq" | "OpenAI";
+type ProviderName = "Gemini" | "OpenRouter" | "Groq" | "OpenAI" | "Together" | "Cerebras";
 
 type ChatCompletionChunk = {
   choices?: Array<{
@@ -92,6 +92,18 @@ function providerConfigs() {
       apiKey: process.env.GROQ_API_KEY,
       endpoint: "https://api.groq.com/openai/v1/chat/completions",
       model: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
+    },
+    {
+      name: "Together",
+      apiKey: process.env.TOGETHER_API_KEY,
+      endpoint: "https://api.together.xyz/v1/chat/completions",
+      model: process.env.TOGETHER_MODEL || "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+    },
+    {
+      name: "Cerebras",
+      apiKey: process.env.CEREBRAS_API_KEY,
+      endpoint: "https://api.cerebras.ai/v1/chat/completions",
+      model: process.env.CEREBRAS_MODEL || "llama3.1-8b",
     },
     {
       name: "OpenAI",

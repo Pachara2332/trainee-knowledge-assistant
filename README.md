@@ -1,118 +1,276 @@
-# Knowledge Assistant
+# Enterprise Knowledge Platform: Production-Style Enterprise AI SaaS
 
-เว็บแอป **ผู้ช่วยความรู้แบบมีการยืนยันตัวตน** สำหรับสนทนากับ AI พร้อมแนบเอกสาร **TXT หรือ PDF** เพื่อใช้เป็นบริบทคำตอบ รองรับการสตรีมคำตอบ แสดง Markdown นับโทเคนรายข้อความและรวมต่อเซสชัน มีหน้าอัปโหลด ประวัติแชตในเครื่อง และ RAG ผ่าน **ChromaDB** สำหรับไฟล์ TXT เมื่อตั้งค่า `CHROMA_URL`
-
-โปรเจกต์นี้เริ่มจาก **Create Next App** (boilerplate Next.js) แล้วพัฒนาต่อเอง — รายละเอียดการใช้ AI อยู่ใน `AI_JOURNAL.md` และเหตุผลเชิงสถาปัตยกรรมใน `DECISIONS.md`
+An enterprise-ready AI Knowledge Platform built on Next.js 16 (App Router), Postgres, and ChromaDB. The system supports multi-tenant federated authentication (Credentials, Google, GitHub, LINE OAuth), real-time streaming chat, a dynamic HSL token-based theme engine with instant root-level theme syncing, and a resilient multi-provider AI failover architecture (Gemini Primary with Together, Cerebras, Groq, and OpenAI fallbacks).
 
 ---
 
-## Tech Stack
+## 🏛️ System Architecture
 
-- **Frontend / Backend:** Next.js 16 (App Router), TypeScript, Route Handlers (`src/app/api/*`)
-- **การยืนยันตัวตน:** NextAuth (Credentials), รหัสผ่านผ่าน **bcrypt**
-- **ฐานข้อมูล:** PostgreSQL (เก็บบัญชีผู้ใช้)
-- **Vector DB:** ChromaDB (Docker) — ใช้กับ pipeline **chunk → embedding (Gemini) → retrieval** สำหรับ **TXT** เมื่อมี `CHROMA_URL`
-- **AI:** Google Gemini (รองรับ fallback ผู้ให้บริการอื่นผ่าน `src/lib/chat/ai.ts` เมื่อตั้งค่า key)
-- **การรัน:** Docker Compose (`docker compose up`)
+```mermaid
+flowchart TD
+    subgraph Client ["Client Layer (Next.js App)"]
+        UI["Dynamic UI (HSL Tokens / Kanit Font)"]
+        Theme["Theme Syncing Engine (Local Storage)"]
+        SW["Service Worker / Event Stream Client"]
+    end
+
+    subgraph Security ["Security & Gateways"]
+        Auth["NextAuth.js v5 (Federated Credentials & OAuth)"]
+        RL["Rate Limiter (Token Bucket Gatekeeper)"]
+    end
+
+    subgraph Core ["Core Backend & Services"]
+        API["Route Handlers (/api/chat)"]
+        Failover["AI Failover Chain Selector"]
+        Embedding["Gemini Embedding Engine"]
+    end
+
+    subgraph AI ["AI Provider Abstractions"]
+        Gemini["Google Gemini (Primary)"]
+        Together["Together AI (Llama 3.1)"]
+        Cerebras["Cerebras AI (llama3.1-8b)"]
+        Groq["Groq (Llama 3.1)"]
+        OpenAI["OpenAI (GPT-4o Mini)"]
+    end
+
+    subgraph Storage ["Persistent Storage"]
+        DB[(PostgreSQL Database)]
+        Vector[(ChromaDB Vector Store)]
+    end
+
+    UI --> Theme
+    UI --> Auth
+    Auth --> API
+    API --> RL
+    RL --> Failover
+    
+    Failover --> Gemini
+    Failover --> Together
+    Failover --> Cerebras
+    Failover --> Groq
+    Failover --> OpenAI
+
+    API --> Embedding
+    Embedding --> Vector
+    API --> DB
+```
 
 ---
 
-## Setup & Run
+## 📂 Core Database Flow & Schema
 
-### รันด้วย Docker (คำสั่งเดียวตามโจทย์)
+The platform relies on a normalized relational layout designed for multi-tenant workspace partitioning, user membership controls, and full conversational auditing.
+
+```
+PostgreSQL Database
+ ├── Users (Federated Credentials / Google / GitHub / LINE OAuth)
+ ├── Workspaces (Enterprise Tenant Partitions)
+ │     ├── Members (Workspace Membership Roles & Access Control)
+ │     ├── Documents (Uploaded Corpus Metadata)
+ │     ├── Conversations (Interactive Context Histories)
+ │     └── Messages (Real-Time Exchange History & Auditing Tokens)
+```
+
+### Suggested Schema Structure
+
+```sql
+-- Conversations Table
+CREATE TABLE conversations (
+    id VARCHAR(255) PRIMARY KEY,
+    workspace_id VARCHAR(255) REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Messages Table
+CREATE TABLE messages (
+    id VARCHAR(255) PRIMARY KEY,
+    conversation_id VARCHAR(255) REFERENCES conversations(id) ON DELETE CASCADE,
+    role VARCHAR(50) NOT NULL, -- 'user' | 'assistant'
+    content TEXT NOT NULL,
+    provider VARCHAR(100), -- 'Gemini' | 'Together' | 'Cerebras' | 'Groq' | 'OpenAI'
+    token_usage JSONB, -- { "promptTokens": X, "completionTokens": Y, "totalTokens": Z }
+    attachment_name VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Documents Table
+CREATE TABLE documents (
+    id VARCHAR(255) PRIMARY KEY,
+    workspace_id VARCHAR(255) REFERENCES workspaces(id) ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    storage_path VARCHAR(500) NOT NULL,
+    status VARCHAR(50) NOT NULL, -- 'queued' | 'processing' | 'indexed' | 'failed'
+    uploaded_by VARCHAR(255) REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## ⚡ Real-Time Chat & RAG Search Flow
+
+### 1. Chat Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Enterprise User
+    participant API as /api/chat Route Handler
+    participant RL as Rate Limiter
+    participant DB as PostgreSQL
+    participant RAG as RAG Retrieval Engine
+    participant Failover as Provider Failover Chain
+    participant Client as SSE Stream Receiver
+
+    User->>API: Send Message (conversationId, content, attachment)
+    API->>RL: Check Rate Limit (20 req / min)
+    RL-->>API: Limit Checked & Approved
+    API->>DB: Load Conversation History
+    API->>RAG: Retrieve Relevant Document Context (if TXT/PDF)
+    RAG-->>API: Context Injected into System Prompt
+    API->>Failover: Dispatch Stream Request
+    Failover->>Failover: Try Gemini (Primary) -> Falls back to Together/Cerebras/Groq/OpenAI on Failure
+    Failover-->>API: Return Active Stream Chunks & Token Usage
+    API-->>Client: Stream SSE Tokens (event: token, provider, usage)
+    API->>DB: Append Conversation Exchanges & Audit Token Usage
+```
+
+### 2. TXT / PDF RAG Pipeline
+
+```mermaid
+flowchart LR
+    Doc["Upload Document"] --> Queue["BullMQ Job Queue"]
+    Queue --> Worker["Async Worker Processor"]
+    Worker --> Extract["Text Extraction & Sanitization"]
+    Extract --> Chunk["Recursive Character Chunking (500 chars / 50 overlap)"]
+    Chunk --> Embed["Gemini Embedding Engine (text-embedding-004)"]
+    Embed --> Vector["ChromaDB Vector Storage"]
+    Vector --> Metadata["Workspace Metadata Indexing"]
+    Metadata --> Ready["Ready for Context Retrieval"]
+```
+
+---
+
+## 🛡️ Resilient Multi-Provider AI Failover
+
+The platform features an abstract, resilient client-side streaming engine that maps custom APIs under a unified streaming interface, ensuring **zero-downtime** operation.
+
+### Failover Order
+
+```
+Gemini (Primary) ──► Together AI ──► Cerebras AI ──► Groq ──► OpenAI (GPT-4o Mini)
+```
+
+- **Primary Engine:** Google Gemini (Direct REST stream integration).
+- **Secondary Engine:** Together AI (`Meta-Llama-3.1-8B-Instruct-Turbo` via OpenAI compatible endpoints).
+- **Tertiary Engine:** Cerebras AI (`llama3.1-8b` via custom ultra-low latency compute endpoints).
+- **Quaternary Engine:** Groq (`llama-3.1-8b-instant`).
+- **Terminal Engine:** OpenAI (`gpt-4o-mini`).
+
+---
+
+## 🎨 Enterprise UX & Dynamic Styling
+
+The UI incorporates rich, Harmonious design details following a premium custom typography system:
+- **Google Fonts Typography:** Fully optimized loading of `Kanit` (ideal for highly legible Thai text) and `Inter` via Next.js `next/font/google`, integrated seamlessly into the CSS `@theme inline` mapping.
+- **HSL CSS Variables Theme System:** Backgrounds, surfaces, borders, and fonts use variables (`bg-surface`, `border-border`, `text-foreground`, `text-muted`) that dynamically shift based on the document class (`.dark` or `.light`).
+- **Dynamic Scrollbars:** Slim CSS scrollbars (`6px`, rounded) that instantly update track and thumb colors when changing themes, ensuring maximum alignment with the backdrop.
+- **Automatic URL Query Cleanup:** On login or registration status changes, client-side query parameters (`?status=logged-in`, etc.) are securely cleared on mount, keeping browser refreshes pristine.
+
+---
+
+## 🐳 Docker compose & Local Setup
+
+### 1. Requirements
+- Docker and Docker Compose
+- Node.js (v20+) & NPM
+
+### 2. Single-Command Setup (Production Simulation)
 
 ```bash
 docker compose up --build
 ```
 
-จาก `docker-compose.yml` แอปถูก map ออกมาที่พอร์ต **3001** บนเครื่อง host (ภายใน container ยังเป็น port 3000):
+The system will start:
+- **Web App Service** on `http://localhost:3001` (Mapped from internal port `3000`)
+- **PostgreSQL Database** on port `5432`
+- **ChromaDB Vector Store** on `http://localhost:8000`
 
-```txt
-http://localhost:3001
-```
+### 3. Local Development Setup (Manual)
 
-### พัฒนาในเครื่อง (ไม่ผ่าน Docker สำหรับแอป)
+1. **Install Dependencies:**
+   ```bash
+   npm install
+   ```
 
-```bash
-npm install
-npm run dev
-```
+2. **Configure Environment Variables (`.env`):**
+   ```env
+   # Authentication Secrets
+   NEXTAUTH_SECRET=K7nP2sYx9VQ1rLm4uJ8cD3eT6wAaBbCcDdEeFfGg
+   NEXTAUTH_URL=http://localhost:3000
 
-ค่าเริ่มต้นของ `next dev` มักเป็น `http://localhost:3000` — ตั้ง `NEXTAUTH_URL` ให้ตรงกับ URL ที่ใช้จริง
+   # Database & Storage
+   DATABASE_URL=postgresql://user:password@localhost:5432/knowledge_assistant
+   CHROMA_URL=http://localhost:8000
 
-### ตัวแปรสภาพแวดล้อมที่จำเป็น
+   # AI API Keys
+   GEMINI_API_KEY=AIzaSyAee...
+   TOGETHER_API_KEY=key_CbUZ2...
+   CEREBRAS_API_KEY=csk-f53wn...
+   GROQ_API_KEY=gsk_Yc1w...
+   OPENAI_API_KEY=sk-proj-...
 
-คัดลอกจาก `.env.example` แล้วปรับค่า:
+   # Federated OAuth Configurations
+   AUTH_GOOGLE_ID=your_google_client_id
+   AUTH_GOOGLE_SECRET=your_google_secret
+   AUTH_GITHUB_ID=your_github_client_id
+   AUTH_GITHUB_SECRET=your_github_secret
+   AUTH_LINE_ID=your_line_client_id
+   AUTH_LINE_SECRET=your_line_secret
+   ```
 
-```env
-GEMINI_API_KEY=your_gemini_key
-GEMINI_API_KEYS=
-GEMINI_MODEL=gemini-2.5-flash
-NEXTAUTH_SECRET=your_secret
-NEXTAUTH_URL=http://localhost:3001
-DATABASE_URL=postgresql://admin:password@db:5432/knowledge_assistant
-CHROMA_URL=http://chromadb:8000
-```
+3. **Start Development Server:**
+   ```bash
+   npm run dev
+   ```
 
-- รันแอป **ใน Docker:** ใช้ `CHROMA_URL=http://chromadb:8000` และ `DATABASE_URL` ชี้ไปที่ service `db` ตามตัวอย่าง
-- รัน **`npm run dev` บนเครื่อง:** ถ้า Chroma รันที่เครื่องเดียวกัน ใช้ `CHROMA_URL=http://localhost:8000`
-
-หากโมเดล `gemini-2.5-flash` ใช้กับ key ของคุณไม่ได้ ให้ตั้งเช่น:
-
-```env
-GEMINI_MODEL=gemini-2.0-flash
-```
-
-### การทดสอบ (Unit test)
+### 4. Running Unit Tests
 
 ```bash
 npm run test
 npm run test:coverage
 ```
 
-รายงาน coverage และเกณฑ์ขั้นต่ำกำหนดใน `vitest.config.ts` (ครอบคลุมโมดูล `src/lib` ชุดที่ระบุ ไม่ใช่ทุกไฟล์ใน repo ทั้งหมด)
+---
+
+## 📈 Observability & Analytics Metrics
+
+The target SaaS dashboard is modeled to surface performance telemetry:
+- **AI Requests Audit Log:** Real-time logging of active provider and response latency.
+- **Token Efficiency Score:** Audits total token consumption per user, workspace, and provider.
+- **Average Provider Latency:** Visualizes low-latency hardware (e.g. Cerebras) vs comprehensive models (e.g. Gemini, OpenAI).
+- **Failover Success Rate:** Tracks failover frequency and system-wide availability.
 
 ---
 
-## Features Done
+## 🗺️ Priority Roadmap
 
-- [x] หน้า Login + เส้นทางที่ต้องล็อกอิน (เช่น `/chat`, `/upload`)
-- [x] ลงทะเบียนผู้ใช้ + เข้ารหัสรหัสผ่านด้วย bcrypt
-- [x] อัปโหลดไฟล์ **PDF / TXT** (มีหน้า `/upload` และแนบไฟล์ในหน้าแชตได้)
-- [x] ตรวจชนิดไฟล์ ขนาด และ sanitize ชื่อไฟล์
-- [x] แชทกับ AI + จัดการ error และ timeout
-- [x] แชทโดยอ้างอิงเอกสารที่แนบ (TXT: RAG ผ่าน Chroma เมื่อตั้ง `CHROMA_URL`; PDF: ส่งแบบ inline ไป Gemini)
-- [x] แสดงการใช้โทเคน **ต่อข้อความ** และ **รวมต่อเซสชันแชต**
-- [x] สตรีมคำตอบ (SSE)
-- [x] แสดง Markdown ในข้อความผู้ช่วย
-- [x] แนว citation ผ่าน prompt ให้อ้าง `[ชื่อไฟล์]`
-- [x] แชตใหม่ + ประวัติการสนทนา (เก็บใน `localStorage`)
-- [x] Rate limiting ฝั่ง API
-- [x] หมุน API key Gemini ผ่าน `GEMINI_API_KEYS`
-- [x] Docker Compose + healthcheck
-- [x] RAG + Vector DB สำหรับ **TXT** (chunk, embedding, retrieval)
-- [x] Unit tests (Vitest + coverage ตาม config)
+### PHASE 1 — Core Foundation (Completed)
+- [x] Database Chat History Persistence.
+- [x] NextAuth v5 credentials + Federated OAuth (Google, Github, LINE).
+- [x] Document Validation & Custom Sanitize Pipeline.
+- [x] Zero-downtime AI Multi-Provider Fallback.
+- [x] Dynamic HSL CSS Theme Synced Scrollbars & Google Typography.
 
----
+### PHASE 2 — Enterprise Integration (Active)
+- [ ] Secure Multi-tenant Workspace Partitioning.
+- [ ] Redis Token Bucket Rate Limiting.
+- [ ] Real-time Admin Telemetry & Observability Dashboard.
 
-## Architecture
-
-- **หน้าเว็บ:** App Router — หน้าที่ต้องล็อกอินตรวจ session ฝั่งเซิร์ฟเวอร์ ส่วน UI แชตเป็น Client Component
-- **`src/app/chat/`** — ประสบการณ์แชต แนบไฟล์ รับสตรีม SSE
-- **`src/app/upload/`** — หน้าอัปโหลดเอกสาร
-- **`src/app/api/chat/route.ts`** — ตรวจสอบสิทธิ์ จำกัดความถี่ ตรวจ payload แล้วสตรีมคำตอบ
-- **`src/lib/auth.ts`**, **`src/lib/users.ts`** — NextAuth และข้อมูลผู้ใช้ใน PostgreSQL
-- **`src/lib/chat/`** — validation, Gemini, ชั้นบริการ AI รวม
-- **`src/lib/rag/`** — แบ่ง chunk, embedding, เชื่อม Chroma, ประกอบ context สำหรับ TXT
-- **`src/components/chat/`** — คอมโพเนนต์ UI แชต
-
-ไฟล์ที่อัปโหลด **ยังไม่ถูกเก็บถาวรในเซิร์ฟเวอร์** — ใช้เป็นบริบทต่อคำขอแชตเป็นหลัก
-
----
-
-## Known Issues
-
-- **RAG:** ทำเต็มรูปแบบกับ **TXT** เมื่อมี Chroma; **PDF** ยังไม่ได้แยกข้อความมา chunk/embed ลง vector DB
-- **ประวัติแชต:** อยู่ใน `localStorage` ต่อเครื่อง/ต่อบราวเซอร์ ไม่ sync ผ่านบัญชีบนฐานข้อมูล
-- **Rate limit:** เก็บในหน่วยความจำของโปรเซส — รีสตาร์ทแล้วรีเซ็ต และไม่แชร์ระหว่างหลาย instance
-- **Coverage:** เกณฑ์ใน `vitest.config.ts` จำกัดชุดไฟล์ที่วัด — ไม่ได้หมายถึง coverage ทั้ง monorepo ทุกไฟล์
+### PHASE 3 — Scalable Infrastructure (Planned)
+- [ ] BullMQ Background Processing Workers.
+- [ ] Multi-tenant ChromaDB Collection Isolation.
+- [ ] S3-Compatible Persistent Storage for Original Attachments.

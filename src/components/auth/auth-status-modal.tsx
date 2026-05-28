@@ -1,32 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type AuthStatus = "logged-in" | "logged-out" | "login-error" | "register-error";
 
 const statusCopy: Record<
   AuthStatus,
-  { title: string; message: string; accentClass: string }
+  { title: string; message: string; toneClass: string }
 > = {
   "logged-in": {
-    title: "Access Granted",
-    message: "Login complete. Your chat console is ready.",
-    accentClass: "bg-[#4F6F86]",
+    title: "Signed in",
+    message: "Your workspace is ready.",
+    toneClass: "border-[#244d36] bg-[#102016] text-[#baf7cf]",
   },
   "logged-out": {
     title: "Signed Out",
-    message: "Logout complete. Your session has been closed.",
-    accentClass: "bg-[#8E3A3A]",
+    message: "Your session has been closed.",
+    toneClass: "border-[#333] bg-[#151515] text-[#dcdcdc]",
   },
   "login-error": {
-    title: "Access Denied",
+    title: "Unable to sign in",
     message: "Invalid email or password. Please try again.",
-    accentClass: "bg-[#8E3A3A]",
+    toneClass: "border-[#5b2525] bg-[#2a1010] text-[#ffb4b4]",
   },
   "register-error": {
-    title: "Registration Blocked",
+    title: "Unable to create account",
     message: "Please check the form details and try again.",
-    accentClass: "bg-[#8E3A3A]",
+    toneClass: "border-[#5b2525] bg-[#2a1010] text-[#ffb4b4]",
   },
 };
 
@@ -40,31 +40,46 @@ export function AuthStatusModal({
   const copy = status && status in statusCopy ? statusCopy[status as AuthStatus] : null;
   const [isOpen, setIsOpen] = useState(Boolean(copy));
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search) {
+      const url = new URL(window.location.href);
+      if (
+        url.searchParams.has("status") ||
+        url.searchParams.has("error") ||
+        url.searchParams.has("detail")
+      ) {
+        url.searchParams.delete("status");
+        url.searchParams.delete("error");
+        url.searchParams.delete("detail");
+        const nextUrl = url.pathname + url.search;
+        window.history.replaceState({}, "", nextUrl);
+      }
+    }
+  }, []);
+
   if (!copy || !isOpen) {
     return null;
   }
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-[#1C1B1A]/70 px-4"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-status-title"
     >
-      <div className="relative w-full max-w-sm border-4 border-[#1C1B1A] bg-white p-5 text-[#1C1B1A] shadow-[14px_14px_0_#C89B3C]">
-        <div
-          className={`absolute -right-3 -top-3 px-3 py-2 text-xs font-black uppercase tracking-[0.22em] text-white shadow-[5px_5px_0_#1C1B1A] ${copy.accentClass}`}
-        >
+      <div className="w-full max-w-sm rounded-3xl border border-[#242424] bg-[#0b0b0b] p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+        <div className={`mb-4 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${copy.toneClass}`}>
           Status
         </div>
-        <h2 id="auth-status-title" className="text-3xl font-black uppercase">
+        <h2 id="auth-status-title" className="text-2xl font-semibold tracking-tight">
           {copy.title}
         </h2>
-        <p className="mt-3 text-sm font-bold leading-6 text-[#34302B]">
+        <p className="mt-3 text-sm font-semibold leading-6 text-[#a8a8a8]">
           {detail || copy.message}
         </p>
         <button
-          className="comic-impact mt-5 w-full border-2 border-[#1C1B1A] bg-[#C89B3C] px-4 py-3 text-sm font-black uppercase tracking-wider shadow-[5px_5px_0_#1C1B1A]"
+          className="mt-5 w-full rounded-full border border-[#2a2a2a] bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#e8e8e8]"
           type="button"
           onClick={() => setIsOpen(false)}
         >

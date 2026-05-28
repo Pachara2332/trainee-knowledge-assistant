@@ -1,44 +1,75 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ChatConversation, Message } from "../../components/chat/types";
+import type {
+  ChatConversation,
+  Message,
+  TokenUsage,
+} from "../../components/chat/types";
 
 const starterMessages: Message[] = [
   {
     id: "welcome",
     role: "assistant",
     content:
-      "**Console online.** Ask me anything, or attach a TXT/PDF so I can answer with document context and citations.",
+      "**Ready when you are.** Ask anything from your trainee knowledge base, or attach a TXT/PDF for document context.",
   },
 ];
 
-const HISTORY_KEY_PREFIX = "knowledge-assistant.chat-conversations";
+const LEGACY_HISTORY_KEY_PREFIX = "knowledge-assistant.chat-conversations";
+const LOCAL_CONVERSATION_PREFIX = "local-chat";
+
+type ApiMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  provider: string | null;
+  tokenUsage: TokenUsage | null;
+  attachments: Array<{ name?: string }> | null;
+  createdAt: string;
+};
+
+type ApiConversation = {
+  id: string;
+  title: string;
+  updatedAt: string;
+  messages: ApiMessage[];
+};
 
 type ConversationState = {
   activeConversationId: string;
   conversations: ChatConversation[];
 };
 
-export function getChatHistoryKey(email?: string | null) {
-  const accountKey = email?.trim().toLowerCase() || "anonymous";
-  return `${HISTORY_KEY_PREFIX}.${encodeURIComponent(accountKey)}`;
+class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
 }
 
-function createConversation(): ChatConversation {
+export function getChatHistoryKey(email?: string | null) {
+  const accountKey = email?.trim().toLowerCase() || "anonymous";
+  return `${LEGACY_HISTORY_KEY_PREFIX}.${encodeURIComponent(accountKey)}`;
+}
+
+function createLocalConversation(): ChatConversation {
   return {
-    id: crypto.randomUUID(),
+    id: `${LOCAL_CONVERSATION_PREFIX}-${crypto.randomUUID()}`,
     title: "New Chat",
     messages: starterMessages,
     updatedAt: Date.now(),
   };
 }
 
-function createInitialConversation(): ChatConversation {
+function createFallbackState(): ConversationState {
+  const conversation = createLocalConversation();
+
   return {
-    id: "initial-chat",
-    title: "New Chat",
-    messages: starterMessages,
-    updatedAt: 0,
+    activeConversationId: conversation.id,
+    conversations: [conversation],
   };
 }
 
@@ -48,83 +79,108 @@ function getConversationTitle(messages: Message[]) {
   return title.length > 36 ? `${title.slice(0, 33)}...` : title;
 }
 
-function createFallbackState(): ConversationState {
-  const conversation = createInitialConversation();
-
+function toClientMessage(message: ApiMessage): Message {
   return {
-    activeConversationId: conversation.id,
-    conversations: [conversation],
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    provider: message.provider ?? undefined,
+    usage: message.tokenUsage ?? undefined,
+    attachmentName: message.attachments?.[0]?.name,
   };
 }
 
-function loadConversationState(historyKey: string): ConversationState {
-  const fallbackState = createFallbackState();
+function toClientConversation(conversation: ApiConversation): ChatConversation {
+  const messages = conversation.messages.map(toClientMessage);
 
-  if (typeof window === "undefined") {
-    return fallbackState;
-  }
-
-  const saved = window.localStorage.getItem(historyKey);
-
-  if (!saved) {
-    return fallbackState;
-  }
-
-  try {
-    const parsed = JSON.parse(saved) as ConversationState;
-    const conversations = Array.isArray(parsed.conversations)
-      ? parsed.conversations.filter(
-          (conversation) =>
-            conversation &&
-            typeof conversation.id === "string" &&
-            Array.isArray(conversation.messages),
-        )
-      : [];
-
-    if (conversations.length === 0) {
-      return fallbackState;
-    }
-
-    return {
-      activeConversationId:
-        conversations.find((conversation) => conversation.id === parsed.activeConversationId)
-          ?.id ?? conversations[0].id,
-      conversations,
-    };
-  } catch {
-    window.localStorage.removeItem(historyKey);
-    return fallbackState;
-  }
+  return {
+    id: conversation.id,
+    title: conversation.title,
+    messages: messages.length > 0 ? messages : starterMessages,
+    updatedAt: new Date(conversation.updatedAt).getTime(),
+  };
 }
 
-export function useChatConversations(email?: string | null) {
-  const historyKey = useMemo(() => getChatHistoryKey(email), [email]);
+function isLocalConversationId(conversationId: string) {
+  return conversationId.startsWith(`${LOCAL_CONVERSATION_PREFIX}-`);
+}
+
+async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiRequestError(
+      body?.error ?? "Unable to sync chat history.",
+      response.status,
+    );
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export function useChatConversations() {
   const [conversationState, setConversationState] =
     useState<ConversationState>(createFallbackState);
-  const [loadedHistoryKey, setLoadedHistoryKey] = useState<string | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState("");
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setConversationState(loadConversationState(historyKey));
-      setLoadedHistoryKey(historyKey);
-    }, 0);
+    let cancelled = false;
 
-    return () => window.clearTimeout(timeoutId);
-  }, [historyKey]);
+    async function loadConversations() {
+      setIsHistoryLoading(true);
+      setHistoryError("");
 
-  useEffect(() => {
-    if (loadedHistoryKey !== historyKey) {
-      return;
+      try {
+        const data = await requestJson<{ conversations: ApiConversation[] }>(
+          "/api/conversations",
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        const conversations = data.conversations.map(toClientConversation);
+
+        if (conversations.length === 0) {
+          setConversationState(createFallbackState());
+          return;
+        }
+
+        setConversationState({
+          activeConversationId: conversations[0].id,
+          conversations,
+        });
+      } catch (error) {
+        if (!cancelled) {
+          if (error instanceof ApiRequestError && error.status === 401) {
+            setConversationState(createFallbackState());
+          } else {
+            setHistoryError(
+              error instanceof Error ? error.message : "Unable to load chat history.",
+            );
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setIsHistoryLoading(false);
+        }
+      }
     }
 
-    window.localStorage.setItem(
-      historyKey,
-      JSON.stringify({
-        ...conversationState,
-        conversations: conversationState.conversations.slice(0, 20),
-      }),
-    );
-  }, [conversationState, historyKey, loadedHistoryKey]);
+    loadConversations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const activeConversation =
     conversationState.conversations.find(
@@ -139,6 +195,50 @@ export function useChatConversations(email?: string | null) {
       ),
     [messages],
   );
+
+  function replaceConversationId(localId: string, persisted: ChatConversation) {
+    setConversationState((current) => ({
+      activeConversationId:
+        current.activeConversationId === localId
+          ? persisted.id
+          : current.activeConversationId,
+      conversations: current.conversations.map((conversation) =>
+        conversation.id === localId
+          ? {
+              ...conversation,
+              id: persisted.id,
+              title: persisted.title,
+              updatedAt: persisted.updatedAt,
+            }
+          : conversation,
+      ),
+    }));
+  }
+
+  async function ensureConversationPersisted(conversationId: string, title: string) {
+    if (!isLocalConversationId(conversationId)) {
+      return conversationId;
+    }
+
+    try {
+      const data = await requestJson<{ conversation: ApiConversation }>(
+        "/api/conversations",
+        {
+          method: "POST",
+          body: JSON.stringify({ title }),
+        },
+      );
+      const persisted = toClientConversation(data.conversation);
+      replaceConversationId(conversationId, persisted);
+      return persisted.id;
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 401) {
+        return conversationId;
+      }
+
+      throw error;
+    }
+  }
 
   function updateConversationMessages(
     conversationId: string,
@@ -166,7 +266,7 @@ export function useChatConversations(email?: string | null) {
   }
 
   function createNewConversation() {
-    const conversation = createConversation();
+    const conversation = createLocalConversation();
 
     setConversationState((current) => ({
       activeConversationId: conversation.id,
@@ -181,7 +281,7 @@ export function useChatConversations(email?: string | null) {
     }));
   }
 
-  function deleteConversation(conversationId: string) {
+  async function deleteConversation(conversationId: string) {
     setConversationState((current) => {
       const remaining = current.conversations.filter(
         (conversation) => conversation.id !== conversationId,
@@ -199,6 +299,12 @@ export function useChatConversations(email?: string | null) {
         conversations: remaining,
       };
     });
+
+    if (!isLocalConversationId(conversationId)) {
+      await requestJson(`/api/conversations/${conversationId}`, {
+        method: "DELETE",
+      });
+    }
   }
 
   function updateDraftTitle(value: string) {
@@ -233,6 +339,9 @@ export function useChatConversations(email?: string | null) {
     totalTokens,
     createNewConversation,
     deleteConversation,
+    ensureConversationPersisted,
+    historyError,
+    isHistoryLoading,
     selectConversation,
     updateConversationMessages,
     updateDraftTitle,

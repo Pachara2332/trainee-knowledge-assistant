@@ -8,7 +8,7 @@ function InlineMarkdown({ text }: { text: string }) {
           return (
             <code
               key={`${part}-${index}`}
-              className="border border-[#1C1B1A] bg-[#C89B3C] px-1 py-0.5 font-mono text-[0.9em] font-bold text-[#1C1B1A]"
+              className="rounded border border-border bg-background px-1 py-0.5 font-mono text-[0.9em] font-semibold text-foreground"
             >
               {part.slice(1, -1)}
             </code>
@@ -29,7 +29,7 @@ export function MarkdownMessage({ content }: { content: string }) {
   const blocks = content.split(/\n{2,}/);
 
   return (
-    <div className="space-y-3 text-sm leading-6">
+    <div className="space-y-3 text-sm leading-6 text-foreground">
       {blocks.map((block, blockIndex) => {
         const trimmed = block.trim();
 
@@ -41,7 +41,7 @@ export function MarkdownMessage({ content }: { content: string }) {
           return (
             <pre
               key={`${trimmed}-${blockIndex}`}
-              className="overflow-x-auto border-2 border-[#1C1B1A] bg-[#1C1B1A] p-3 text-xs text-[#E7E1D6] shadow-[5px_5px_0_#4F6F86]"
+              className="overflow-x-auto rounded-2xl border border-border bg-surface p-3 text-xs text-foreground"
             >
               <code>{trimmed.replace(/^```[a-z]*\n?/i, "").replace(/```$/, "")}</code>
             </pre>
@@ -52,7 +52,7 @@ export function MarkdownMessage({ content }: { content: string }) {
           return (
             <h2
               key={`${trimmed}-${blockIndex}`}
-              className="text-lg font-black uppercase text-[#1C1B1A]"
+              className="text-lg font-semibold text-foreground"
             >
               {trimmed.slice(2)}
             </h2>

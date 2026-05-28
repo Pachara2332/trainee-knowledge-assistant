@@ -1,51 +1,77 @@
 import Link from "next/link";
 import { signOut } from "../../lib/auth";
 
-export function ChatSidebar({ email }: { email?: string | null }) {
+export function ChatSidebar({
+  active = "chat",
+  email,
+}: {
+  active?: "chat" | "upload";
+  email?: string | null;
+}) {
   return (
-    <aside className="border-b-4 border-[#1C1B1A] bg-[#E7E1D6] p-4 text-[#1C1B1A] shadow-[0_12px_0_#1C1B1A] lg:sticky lg:top-0 lg:h-screen lg:w-[280px] lg:self-start lg:overflow-y-auto lg:border-b-0 lg:border-r-4 lg:shadow-[12px_0_0_#1C1B1A]">
-      <div className="flex min-h-full flex-col gap-5">
-        <div>
+    <aside className="border-b border-[#111] bg-[#050505] p-3 text-white lg:sticky lg:top-0 lg:h-screen lg:w-[264px] lg:self-start lg:overflow-y-auto lg:border-b-0 lg:border-r">
+      <div className="flex min-h-full flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-sm font-semibold">
+            <span className="grid h-8 w-8 place-items-center rounded-full border border-[#2b2b2b] text-base">
+              K
+            </span>
+            <span>Knowledge</span>
+          </Link>
           <Link
             href="/"
-            className="inline-block border-4 border-[#1C1B1A] bg-[#C89B3C] px-3 py-2 text-lg font-black uppercase leading-none tracking-tighter shadow-[6px_6px_0_#8E3A3A]"
+            className="rounded-full px-2 py-1 text-sm font-semibold leading-none text-[#9b9b9b] transition hover:bg-[#1b1b1b] hover:text-white"
+            title="Back to landing"
           >
-            Knowledge Assistant
+            &lt;&lt;
           </Link>
-          <p className="mt-5 inline-block -skew-x-6 bg-[#8E3A3A] px-3 py-1 text-xs font-black uppercase tracking-[0.24em] text-white shadow-[5px_5px_0_#1C1B1A]">
-            Mission Control
-          </p>
-          <h1 className="mt-3 text-4xl font-black uppercase leading-none text-[#C89B3C] drop-shadow-[4px_4px_0_#1C1B1A]">
-            Chat Console
-          </h1>
         </div>
 
-        <nav className="grid gap-3">
+        <nav className="grid gap-1 text-sm font-semibold">
+          {active === "upload" ? (
+            <Link
+              className="rounded-xl px-3 py-2 text-[#d0d0d0] transition hover:bg-[#191919] hover:text-white"
+              href="/chat"
+            >
+              New Chat
+            </Link>
+          ) : null}
           <Link
-            className="comic-impact border-2 border-[#1C1B1A] bg-white px-4 py-3 text-sm font-black uppercase tracking-wider shadow-[5px_5px_0_#4F6F86]"
-            href="/"
-          >
-            Home
-          </Link>
-          <Link
-            className="comic-impact border-2 border-[#1C1B1A] bg-white px-4 py-3 text-sm font-black uppercase tracking-wider shadow-[5px_5px_0_#4F6F86]"
+            className={`rounded-xl px-3 py-2 transition ${
+              active === "upload"
+                ? "bg-[#1d1d1d] text-white"
+                : "text-[#d0d0d0] hover:bg-[#191919] hover:text-white"
+            }`}
             href="/upload"
           >
             Upload
           </Link>
-          <Link
-            className="comic-impact border-2 border-[#1C1B1A] bg-[#1C1B1A] px-4 py-3 text-sm font-black uppercase tracking-wider text-white shadow-[5px_5px_0_#4F6F86]"
-            href="/chat"
-          >
-            Chat
-          </Link>
         </nav>
 
-        <div className="mt-auto border-4 border-[#1C1B1A] bg-white p-3 shadow-[7px_7px_0_#1C1B1A]">
-          <p className="text-[0.65rem] font-black uppercase tracking-[0.22em] text-[#8E3A3A]">
-            Operator
+        <div className="grid gap-3 text-sm">
+          <div>
+            <div className="mb-2 text-xs font-semibold text-white">Projects</div>
+            <Link
+              href="/upload"
+              className="flex items-center gap-3 rounded-xl px-3 py-2 text-[#9b9b9b] transition hover:bg-[#191919] hover:text-white"
+            >
+              <span className="text-xl leading-none">+</span>
+              <span>New Project</span>
+            </Link>
+          </div>
+          <div className={active === "chat" ? "mt-14" : ""}>
+            <div className="mb-2 text-xs font-semibold text-white">History</div>
+            <p className="rounded-xl px-3 py-2 text-xs leading-5 text-[#8d8d8d]">
+              Your saved chats appear in the center panel after you start asking.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-auto rounded-2xl border border-[#171717] bg-[#080808] p-3">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8d8d8d]">
+            Account
           </p>
-          <p className="mt-1 break-all text-sm font-black">{email}</p>
+          <p className="mt-2 break-all text-sm font-semibold text-white">{email}</p>
         </div>
 
         <form
@@ -54,7 +80,7 @@ export function ChatSidebar({ email }: { email?: string | null }) {
             await signOut({ redirectTo: "/login?status=logged-out" });
           }}
         >
-          <button className="comic-impact w-full border-2 border-[#1C1B1A] bg-[#8E3A3A] px-4 py-3 text-sm font-black uppercase tracking-wider text-white shadow-[5px_5px_0_#1C1B1A]">
+          <button className="w-full rounded-full border border-[#2a2a2a] px-4 py-3 text-sm font-semibold text-[#d0d0d0] transition hover:border-[#555] hover:text-white">
             Sign Out
           </button>
         </form>

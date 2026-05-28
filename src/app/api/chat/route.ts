@@ -10,6 +10,7 @@ import {
 } from "../../../lib/gemini";
 import { buildTxtRagContext } from "../../../lib/rag/txt-rag";
 import { checkRateLimit } from "../../../lib/security/rate-limit";
+import { appendChatExchange } from "../../../repositories/chat-history";
 
 export const runtime = "nodejs";
 
@@ -24,10 +25,17 @@ function sendEvent(
   );
 }
 
+function getUserId(session: { user?: { id?: unknown } } | null) {
+  return session?.user && "id" in session.user && typeof session.user.id === "string"
+    ? session.user.id
+    : null;
+}
+
 export async function POST(request: Request) {
   const session = await auth();
+  const userId = getUserId(session);
 
-  if (!session?.user) {
+  if (!session?.user || !userId) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -51,11 +59,16 @@ export async function POST(request: Request) {
 
   let messages: ChatMessage[];
   let attachment = null;
+  let conversationId: string | null = null;
 
   try {
     const body = await request.json();
     messages = normalizeMessages(body.messages);
     attachment = normalizeAttachment(body.attachment);
+    conversationId =
+      typeof body.conversationId === "string" && body.conversationId.trim()
+        ? body.conversationId.trim()
+        : null;
 
     if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
       return Response.json(
@@ -100,6 +113,7 @@ export async function POST(request: Request) {
     async start(controller) {
       let answer = "";
       let usage: TokenUsage | null = null;
+      let provider: string | null = null;
 
       try {
         await streamAiAnswer({
@@ -113,10 +127,28 @@ export async function POST(request: Request) {
           onUsage(nextUsage) {
             usage = nextUsage;
           },
-          onProvider(provider) {
-            sendEvent(controller, "provider", { provider });
+          onProvider(nextProvider) {
+            provider = nextProvider;
+            sendEvent(controller, "provider", { provider: nextProvider });
           },
         });
+
+        if (conversationId) {
+          await appendChatExchange({
+            userId,
+            conversationId,
+            userContent: messages[messages.length - 1].content,
+            userAttachment: attachment
+              ? {
+                  name: attachment.name,
+                  mimeType: attachment.mimeType,
+                }
+              : null,
+            assistantContent: answer,
+            provider,
+            tokenUsage: usage ?? fallbackAiUsage(messages, answer),
+          });
+        }
 
         sendEvent(controller, "usage", usage ?? fallbackAiUsage(messages, answer));
         sendEvent(controller, "done", {});

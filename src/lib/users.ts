@@ -1,39 +1,16 @@
 import bcrypt from "bcryptjs";
+import { getPool, type PoolLike } from "../db/pool";
 
 type UserRecord = {
   id: string;
   email: string;
-  password_hash: string;
+  password_hash: string | null;
   name: string | null;
 };
 
-type QueryResult<T> = {
-  rows: T[];
-};
-
-type PoolLike = {
-  query<T>(sql: string, params?: unknown[]): Promise<QueryResult<T>>;
-};
-
 const globalForPg = globalThis as typeof globalThis & {
-  userPool?: PoolLike;
   usersTableReady?: boolean;
 };
-
-async function getPool() {
-  if (!process.env.DATABASE_URL) {
-    return null;
-  }
-
-  if (!globalForPg.userPool) {
-    const { Pool } = await import("pg");
-    globalForPg.userPool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-    });
-  }
-
-  return globalForPg.userPool;
-}
 
 async function ensureUsersTable(pool: PoolLike) {
   if (globalForPg.usersTableReady) {
@@ -45,11 +22,17 @@ async function ensureUsersTable(pool: PoolLike) {
     CREATE TABLE IF NOT EXISTS users (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       email TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
+      password_hash TEXT,
       name TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+
+  try {
+    await pool.query("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL");
+  } catch (error) {
+    console.error("[db] failed to alter password_hash column", error);
+  }
 
   globalForPg.usersTableReady = true;
 }
@@ -100,6 +83,43 @@ export async function createUser({
       "INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3)",
       [normalizedEmail, passwordHash, name?.trim() || null],
     );
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "23505"
+    ) {
+      throw new Error("Email is already registered.");
+    }
+
+    throw error;
+  }
+}
+
+export async function createOAuthUser({
+  email,
+  name,
+}: {
+  email: string;
+  name?: string;
+}) {
+  const pool = await getPool();
+
+  if (!pool) {
+    throw new Error("Database is not configured.");
+  }
+
+  await ensureUsersTable(pool);
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  try {
+    const result = await pool.query<UserRecord>(
+      "INSERT INTO users (email, password_hash, name) VALUES ($1, NULL, $2) RETURNING id, email, password_hash, name",
+      [normalizedEmail, name?.trim() || null],
+    );
+    return result.rows[0];
   } catch (error) {
     if (
       error &&

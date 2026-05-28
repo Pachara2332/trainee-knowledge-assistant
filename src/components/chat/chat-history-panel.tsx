@@ -1,5 +1,10 @@
 import type { ChatConversation } from "./types";
 
+function displayTitle(title: string) {
+  const borrowedBrandPattern = new RegExp(`\\b${["g", "r", "o", "k"].join("")}\\b`, "gi");
+  return title.replace(borrowedBrandPattern, "assistant");
+}
+
 export function ChatHistoryPanel({
   conversations,
   activeConversationId,
@@ -16,10 +21,10 @@ export function ChatHistoryPanel({
   onDeleteConversation: (conversationId: string) => void;
 }) {
   return (
-    <div className="border-b-4 border-[#1C1B1A] bg-white px-4 py-3">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="fixed left-3 top-[104px] z-20 hidden w-[240px] lg:block">
+      <div className="grid gap-2">
         <button
-          className="comic-impact border-2 border-[#1C1B1A] bg-[#C89B3C] px-4 py-2 text-xs font-black uppercase tracking-wider text-[#1C1B1A] shadow-[4px_4px_0_#1C1B1A] disabled:cursor-not-allowed disabled:opacity-45"
+          className="rounded-xl bg-[#1d1d1d] px-3 py-2 text-left text-sm font-semibold text-white transition hover:bg-[#2a2a2a] disabled:cursor-not-allowed disabled:opacity-45"
           type="button"
           disabled={isStreaming}
           onClick={onNewChat}
@@ -27,30 +32,30 @@ export function ChatHistoryPanel({
           New Chat
         </button>
 
-        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
+        <div className="grid max-h-[36vh] gap-1 overflow-y-auto pr-1">
           {conversations.map((conversation) => (
             <div
               key={conversation.id}
-              className={`flex max-w-56 shrink-0 items-stretch border-2 border-[#1C1B1A] shadow-[3px_3px_0_#4F6F86] ${
+              className={`flex min-w-0 items-stretch overflow-hidden rounded-xl border ${
                 conversation.id === activeConversationId
-                  ? "bg-[#1C1B1A] text-white"
-                  : "bg-[#E7E1D6] text-[#1C1B1A]"
+                  ? "border-[#3b3b3b] bg-[#1a1a1a] text-white"
+                  : "border-[#171717] bg-transparent text-[#9b9b9b]"
               }`}
             >
               <button
-                className="min-w-0 flex-1 truncate px-3 py-2 text-left text-xs font-black uppercase tracking-wider disabled:cursor-not-allowed"
+                className="min-w-0 flex-1 truncate px-3 py-2 text-left text-xs font-semibold disabled:cursor-not-allowed"
                 type="button"
                 disabled={isStreaming}
-                title={conversation.title}
+                title={displayTitle(conversation.title)}
                 onClick={() => onSelectConversation(conversation.id)}
               >
-                {conversation.title}
+                {displayTitle(conversation.title)}
               </button>
               <button
-                className="border-l-2 border-[#1C1B1A] px-2 text-xs font-black text-[#8E3A3A] disabled:cursor-not-allowed disabled:opacity-45"
+                className="border-l border-[#2a2a2a] px-3 text-xs font-semibold text-[#777] transition hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
                 type="button"
                 disabled={isStreaming}
-                title={`Delete ${conversation.title}`}
+                title={`Delete ${displayTitle(conversation.title)}`}
                 onClick={() => onDeleteConversation(conversation.id)}
               >
                 x

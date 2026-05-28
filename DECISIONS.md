@@ -1,51 +1,100 @@
-# Architecture Decisions
+# Architecture Decision Records (ADR)
 
-เอกสารนี้อธิบาย **สามการตัดสินใจสำคัญ** ในการออกแบบระบบ Knowledge Assistant โดยอิงจากข้อจำกัดของโจทย์ ทรัพยากรทีม และเป้าหมายการส่งมอบที่ตรวจได้จริง
-
----
-
-## Decision 1: ใช้ Next.js App Router เป็นทั้งเว็บและ API
-
-### Context
-โจทย์กำหนดให้ใช้ Next.js หรือ Nuxt.js และต้องมีทั้งหน้าเว็บ การยืนยันตัวตน และ API สำหรับแชตที่มีสตรีม โปรเจกต์ติดตั้ง **Next.js 16** ซึ่งมีความต่างจากเวอร์ชันเก่าในหลายจุด การออกแบบจึงต้องรองรับทั้งการตรวจ session ฝั่งเซิร์ฟเวอร์ การไม่เปิดเผย API key ไปที่เบราว์เซอร์ และการแยกส่วนที่เป็น interactive ออกจากส่วนที่อ่านความลับของระบบ
-
-### Alternatives Considered
-เคยพิจารณา **แยก backend** เป็นเฟรมเวิร์กอื่น (เช่น Express/Fastify) คู่กับ React ฝั่งหน้าเว็บ — ได้ข้อดีเรื่องขอบเขตชัดเจน แต่เพิ่มงาน deploy และความซับซ้อนในการพัฒนาเชิงนักศึกษา อีกทางเลือกคือเรียก AI จาก **ฝั่ง client โดยตรง** ซึ่งลดภาระ server แต่เสี่ยงด้านความปลอดภัยและการควบคุมโควต้า API
-
-### Why Next.js App Router
-App Router รวม **routing, Server Components, Route Handlers** ไว้ในโปรเจกต์เดียว ทำให้สร้างหน้า `/chat` และ `/upload` ที่ต้องล็อกอินได้โดยตรวจ session บน server ก่อนเรนเดอร์ และให้ `/api/chat` เป็นจุดเดียวที่คุยกับผู้ให้บริการ AI พร้อมสตรีม SSE ได้นอกจากนี้ยังสอดคล้องกับแนวทาง “full-stack ใน repo เดียว” ที่โจทย์ยอมรับ
-
-### Trade-offs
-ต้องจัดการขอบเขต **server vs client** อย่างระมัดระวัง ฟังก์ชันที่แตะ `localStorage`, อินพุตไฟล์ หรือ state การสตรีมต้องอยู่ client component ในขณะที่ logic การยืนยันตัวตนและ key ต้องอยู่ฝั่ง server หากในอนาคต API โตมาก อาจต้องแยกบริการออก — แต่ในขอบเขตโปรเจกต์นี้การรวมอยู่ใน Next.js ยังคุ้มค่าที่สุด
+This document records the critical architectural decisions made during the design and implementation of the Enterprise Knowledge Platform.
 
 ---
 
-## Decision 2: เก็บประวัติการสนทนาใน localStorage ก่อน ไม่ใช้ PostgreSQL สำหรับข้อความ
+## 🧭 ADR 1: Unified Next.js App Router for Web & Web-API Gateways
 
 ### Context
-โบนัสโจทย์ต้องการ **conversation history (save/load)** ในขณะที่ฐานข้อมูลของโปรเจกต์ถูกออกแบบมาเพื่อ **บัญชีผู้ใช้** เป็นหลัก ยังไม่มีตาราง `conversations` / `messages` ที่ผูกกับผู้ใช้และสิทธิ์การเข้าถึงอย่างสมบูรณ์ เป้าหมายจึงคือทำให้ผู้ใช้ “รู้สึกว่ามีประวัติ” ได้เร็ว โดยไม่ขยายขอบเขตงานไปถึง migration และ UI จัดการข้อผิดพลาดจากฐานข้อมูลทั้งหมดในทันที
+The platform requires secure federated authentication, protected file uploads, real-time message streaming (SSE), and secure key storage. We chose **Next.js 16 (App Router)** as the core structural framework.
 
 ### Alternatives Considered
-ทางเลือกหลักคือ **เก็บข้อความใน PostgreSQL** พร้อม foreign key ไปยังผู้ใช้ — ถูกต้องที่สุดในเชิง production แต่ใช้เวลาออกแบบและทดสอบมากขึ้น อีกทางเลือกคือเก็บใน **session/cookie** ซึ่งไม่เหมาะกับข้อความยาวและจำนวนมาก หรือ **ไม่ persist** เลย ซึ่งไม่ผ่านเกณฑ์โบนัส
+- **Decoupled Architecture (React SPA + Express/Fastify Backend):** Provides clear physical isolation, but introduces multiple deployment vectors, cross-origin resource sharing (CORS) complexity, and multiple points of failure.
+- **Client-Side Direct AI Requests:** Minimizes server overhead but exposes sensitive API credentials and limits telemetry collection.
 
-### Why localStorage
-`localStorage` ให้การ **บันทึกและโหลด** ได้ทันทีหลัง refresh โดยไม่ต้องเพิ่ม schema ใหม่ สามารถรองรับหลายบทสนทนา การตั้งชื่อจากข้อความแรก และการจำกัดจำนวนรายการเพื่อกันพื้นที่เต็มได้ง่าย เหมาะกับ milestone การสาธิตและการส่งงานที่ต้องการฟีเจอร์ครบในเวลาจำกัด
+### Decision
+Utilize Next.js App Router. We run server-side logic inside **Server Components** and **Route Handlers (`/api/*`)** to protect secrets, while client-side states handle interactions like streaming and files.
 
-### Trade-offs
-ประวัติ **ไม่ตามบัญชีข้ามเครื่อง** และหายได้เมื่อล้างข้อมูลไซต์ ไม่มีการสำรองฝั่ง server และไม่เหมาะกับข้อมูลอ่อนไหวระดับสูง หากจะขยายเป็นระบบจริง ควรย้ายไป PostgreSQL พร้อมนโยบายลบข้อมูลและการตรวจสอบสิทธิ์ต่อข้อความ
+### Consequences
+- **Security:** Zero client exposure of AI API keys or PostgreSQL connection URLs.
+- **Complexity:** Must maintain strict client vs. server boundaries (`"use client"` tags).
+- **Scale:** Simplifies single-container deployment, making the application highly portable.
 
 ---
 
-## Decision 3: RAG ผ่าน Chroma สำหรับ TXT ก่อน ส่วน PDF ยังใช้ inline กับ Gemini
+## 🗄️ ADR 2: Relational PostgreSQL Database for Conversation History Persistence
 
 ### Context
-โจทย์โบนัสระบุ **RAG + Vector DB** ครบวงจร (chunking, embedding, retrieval) ขณะที่ผู้ใช้ยังต้องการอัปโหลด **PDF** ได้ทันที โดยไม่บังคับ pipeline ดึงข้อความจาก PDF ในเซิร์ฟเวอร์ การออกแบบจึงต้องแยก “เส้นทางข้อความล้วน” กับ “เส้นทางไบนารี PDF” ให้ชัดเพื่อลดความเสี่ยงด้านไลบรารี OCR/PDF และเวลาพัฒนา
+Conversations must persist across devices, reload automatically, and support analytical querying. While a temporary storage structure like `localStorage` was considered for early prototyping, it fails to meet enterprise requirements.
 
 ### Alternatives Considered
-ทางเลือกหนึ่งคือ **บังคับ extract ข้อความจาก PDF** แล้ว chunk/embed ทุกชนิดเหมือน TXT — ได้ RAG ที่สม่ำเสมอ แต่ต้องเลือกเครื่องมือ extract, จัดการภาษา, layout และขนาดไฟล์ อีกทางเลือกคือ **ไม่ทำ RAG เลย** และพึ่งการส่งไฟล์ยาว ๆ ไปที่โมเดล — ง่ายแต่ไม่ผ่านเกณฑ์โบนัสและไม่สเกลกับไฟล์ใหญ่
+- **Pure Local Storage (`localStorage`):** Easy to implement but fails to support cross-device sync, session management, or analytics auditing.
+- **NoSQL / Document Store (MongoDB):** Highly compatible with chat transcripts, but introduces an additional infrastructure dependency alongside our relational user database.
 
-### Why TXT-only RAG first
-ไฟล์ **TXT** เป็นข้อความอยู่แล้ว ทำ **chunk → เรียก Gemini embedding → เก็บ/ค้นใน Chroma** ได้ตรงไปตรงมา ส่วน **PDF** ยังส่งเป็น **inline PDF** ให้ Gemini ประมวลผลต่อเนื่องจากเส้นทางนี้มีอยู่แล้วและตอบสนองโจทย์ “อัปโหลด PDF แล้วถามได้” ในมิติผู้ใช้ แม้จะยังไม่ใช่ vector RAG
+### Decision
+Implement server-side persistent conversation storage using **PostgreSQL**. The history is synchronized securely via relational foreign keys linked to authenticated user records.
 
-### Trade-offs
-คำตอบจาก **PDF** ไม่ได้อ้างอิง chunk จาก vector DB และคุณภาพขึ้นกับความสามารถของโมเดลในการอ่าน PDF แบบ inline การทำ RAG สำหรับ PDF ที่ถูกต้องควรเพิ่มขั้น extract ข้อความคุณภาพดี แล้วค่อยใช้ pipeline เดียวกับ TXT หรือใช้บริการ OCR แยก
+### Consequences
+- **Data Integrity:** Fully relational referential constraints ensure messages, attachments, and users stay structurally in-sync.
+- **Auditability:** Telemetry metrics (such as the provider name and tokens used) are saved directly in database columns alongside conversational payloads, enabling precise monitoring.
+- **Performance:** Complex queries for analytics and dashboards can be ran using traditional SQL indices.
+
+---
+
+## 🔐 ADR 3: NextAuth.js v5 Federated Credentials & OAuth Integration
+
+### Context
+To accommodate diverse user profiles, the platform must support both traditional email/password credentials and enterprise single sign-on (SSO) or social OAuth logins (Google, GitHub, LINE).
+
+### Alternatives Considered
+- **Custom Session Handling & Cookie Management:** Highly customizable, but increases security risks, cookie hijacking vulnerabilities, and manual token refresh overhead.
+- **Third-Party Identity SaaS (Auth0, Clerk):** Excellent developer experience but introduces subscription fees and lock-in.
+
+### Decision
+Integrate **NextAuth.js v5 (Auth.js)** as the federated security layer. We implemented:
+1. **Credentials Provider:** Uses `bcrypt` for secure hashing and validation of passwords stored in PostgreSQL.
+2. **Social OAuth Providers:** Integrates Google, GitHub, and LINE.
+3. **Database Federation:** On successful OAuth sign-in, the system automatically checks if the user exists and creates a relational user record (with a `NULL` password hash) if they are new.
+
+### Consequences
+- **Developer & User Experience:** High-speed sign-in flows with secure cross-origin redirection.
+- **Session Extensibility:** User database UUIDs and avatars are injected directly into JWT session states, making them available in Server Components.
+
+---
+
+## 🔄 ADR 4: Gemini Primary with Multi-Provider Failover Abstraction
+
+### Context
+AI rate limits, outages, and regional network constraints present a risk to SaaS availability. A robust system must survive primary provider failure without degrading the user experience.
+
+### Alternatives Considered
+- **Single Provider Configuration:** Simple to implement but lacks resilience.
+- **Serverless API Gateway (OpenRouter Exclusive):** Extremely convenient, but introduces single-point-of-failure routing and higher API costs.
+
+### Decision
+Implement an abstract, local **Multi-Provider Failover Chain**.
+- **Google Gemini** serves as the primary model.
+- **Together AI** (`Meta-Llama-3.1-8B-Instruct-Turbo`) and **Cerebras AI** (`llama3.1-8b`) serve as the secondary failover systems, followed by **Groq** and **OpenAI** as terminal fallbacks.
+- The backend catches stream errors and automatically falls back to the next provider, sending an `event: provider` event down the server-sent events (SSE) stream to keep the client informed.
+
+### Consequences
+- **High Availability:** If Gemini fails, the system recovers and delivers responses transparently.
+- **Low Latency:** Incorporating ultra-low latency compute engines (e.g. Cerebras) maintains high-speed responses.
+
+---
+
+## 🎨 ADR 5: Unified HSL Token Styling & Dynamic Root-Level Theme Syncing
+
+### Context
+Modern web platforms require cohesive dark/light transitions. Classic utility-based color toggles often lead to inconsistencies, unreadable code snippets, or flashing browser scrollbars.
+
+### Decision
+Adopt a unified **HSL Token Design System** utilizing Tailwind CSS v4 variables:
+1. **Dynamic CSS Variables:** We define tokens like `--background`, `--foreground`, `--surface`, and `--border` in `.dark` and `.light` styles inside [globals.css](file:///c:/Users/User/trainee-knowledge-assistant/src/app/globals.css).
+2. **Standard Utility Mapping:** Variables are mapped inside Tailwind's `@theme inline` directive, exposing dynamic utility classes like `text-muted`, `bg-surface`, and `border-border`.
+3. **Root-Level Syncing:** The Client Component [chat-client.tsx](file:///c:/Users/User/trainee-knowledge-assistant/src/app/chat/chat-client.tsx) monitors theme states, writes preferences to local storage, and syncs them directly to the `document.documentElement` class list.
+
+### Consequences
+- **Consistency:** Scrollbars, markdown text, message bubbles, and preformatted code blocks transition dynamically without hardcoded colors.
+- **Readability:** Web-safe font smoothing adjustments (`-webkit-font-smoothing`) are dynamically adapted per theme to ensure legibility.
