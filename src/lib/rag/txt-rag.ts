@@ -3,12 +3,12 @@ import { chunkText } from "./chunk-text";
 import { embedTexts, hashDocKey } from "./embed-gemini";
 import { StubEmbeddingFunction } from "./stub-embedding-function";
 
-function collectionNameForUser(userKey: string) {
-  const safe = userKey.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
-  return `kb_${safe || "user"}`;
+export function collectionNameForWorkspace(workspaceId: string) {
+  const safe = workspaceId.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
+  return `workspace_${safe || "default"}`;
 }
 
-async function getCollection(userKey: string) {
+async function getCollection(workspaceId: string) {
   const path = process.env.CHROMA_URL?.trim();
   if (!path) {
     throw new Error("CHROMA_URL is not set.");
@@ -16,23 +16,23 @@ async function getCollection(userKey: string) {
 
   const client = new ChromaClient({ path });
   return client.getOrCreateCollection({
-    name: collectionNameForUser(userKey),
+    name: collectionNameForWorkspace(workspaceId),
     embeddingFunction: new StubEmbeddingFunction(),
   });
 }
 
 /**
- * Indexes TXT chunks into Chroma (per user collection), retrieves top excerpts for the question,
+ * Indexes text chunks into Chroma (per user collection), retrieves top excerpts for the question,
  * and returns text suitable to inject as attachment context.
  */
-export async function buildTxtRagContext({
-  userKey,
+export async function buildDocumentRagContext({
+  workspaceId,
   fileName,
   fullText,
   userQuestion,
   signal,
 }: {
-  userKey: string;
+  workspaceId: string;
   fileName: string;
   fullText: string;
   userQuestion: string;
@@ -44,7 +44,7 @@ export async function buildTxtRagContext({
   }
 
   const docKey = hashDocKey(fileName, fullText);
-  const collection = await getCollection(userKey);
+  const collection = await getCollection(workspaceId);
 
   try {
     await collection.delete({
@@ -94,3 +94,5 @@ export async function buildTxtRagContext({
     rows.map((row, index) => `--- Excerpt ${index + 1} ---\n${row}`).join("\n\n"),
   ].join("\n");
 }
+
+export const buildTxtRagContext = buildDocumentRagContext;

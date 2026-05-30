@@ -8,8 +8,14 @@ import {
   type ChatMessage,
   type TokenUsage,
 } from "../../../lib/gemini";
-import { buildTxtRagContext } from "../../../lib/rag/txt-rag";
+import { extractPdfTextFromBase64 } from "../../../lib/rag/pdf-text";
+import { buildDocumentRagContext } from "../../../lib/rag/txt-rag";
 import { checkRateLimit } from "../../../lib/security/rate-limit";
+import {
+  WorkspacePermissionError,
+  assertMember,
+  getUserWorkspaces,
+} from "../../../lib/workspace/workspace";
 import { appendChatExchange } from "../../../repositories/chat-history";
 
 export const runtime = "nodejs";
@@ -31,6 +37,28 @@ function getUserId(session: { user?: { id?: unknown } } | null) {
     : null;
 }
 
+function buildExtractedDocumentContext({
+  fileName,
+  text,
+  truncated,
+}: {
+  fileName: string;
+  text: string;
+  truncated: boolean;
+}) {
+  return [
+    `The following text was extracted from [${fileName}].`,
+    `Treat it as primary document evidence; cite as [${fileName}] when you rely on it.`,
+    truncated
+      ? "Only the first extractable portion is included because the PDF text is long."
+      : "",
+    "",
+    text.slice(0, 40_000),
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export async function POST(request: Request) {
   const session = await auth();
   const userId = getUserId(session);
@@ -39,7 +67,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     key: session.user.email ?? "anonymous",
     limit: 20,
     windowMs: 60_000,
@@ -60,6 +88,7 @@ export async function POST(request: Request) {
   let messages: ChatMessage[];
   let attachment = null;
   let conversationId: string | null = null;
+  let workspaceId = "";
 
   try {
     const body = await request.json();
@@ -69,6 +98,21 @@ export async function POST(request: Request) {
       typeof body.conversationId === "string" && body.conversationId.trim()
         ? body.conversationId.trim()
         : null;
+    workspaceId =
+      typeof body.workspaceId === "string" && body.workspaceId.trim()
+        ? body.workspaceId.trim()
+        : "";
+
+    if (!workspaceId) {
+      const workspaces = await getUserWorkspaces(userId);
+      workspaceId = workspaces[0]?.id ?? "";
+    }
+
+    if (!workspaceId) {
+      return Response.json({ error: "Workspace is required." }, { status: 400 });
+    }
+
+    await assertMember(workspaceId, userId);
 
     if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
       return Response.json(
@@ -77,6 +121,10 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
+    if (error instanceof WorkspacePermissionError) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const message =
       error instanceof ChatValidationError ? error.message : "Invalid JSON payload.";
     return Response.json({ error: message }, { status: 400 });
@@ -85,20 +133,21 @@ export async function POST(request: Request) {
   let attachmentForModel = attachment;
   const chromaUrl = process.env.CHROMA_URL?.trim();
 
-  if (
-    chromaUrl &&
-    attachment?.mimeType === "text/plain" &&
-    attachment.text &&
-    attachment.text.length > 0
-  ) {
+  if (attachment?.mimeType === "text/plain" && attachment.text) {
     try {
-      const ragText = await buildTxtRagContext({
-        userKey: session.user.email ?? session.user.id ?? "anonymous",
-        fileName: attachment.name,
-        fullText: attachment.text,
-        userQuestion: messages[messages.length - 1].content,
-        signal: request.signal,
-      });
+      const ragText = chromaUrl
+        ? await buildDocumentRagContext({
+            workspaceId,
+            fileName: attachment.name,
+            fullText: attachment.text,
+            userQuestion: messages[messages.length - 1].content,
+            signal: request.signal,
+          })
+        : buildExtractedDocumentContext({
+            fileName: attachment.name,
+            text: attachment.text,
+            truncated: attachment.text.length >= 40_000,
+          });
       const ragAttachment: ChatAttachment = {
         ...attachment,
         text: ragText,
@@ -106,6 +155,33 @@ export async function POST(request: Request) {
       attachmentForModel = ragAttachment;
     } catch (error) {
       console.error("Chroma RAG skipped:", error);
+    }
+  }
+
+  if (attachment?.mimeType === "application/pdf" && attachment.data) {
+    try {
+      const extracted = await extractPdfTextFromBase64(attachment.data);
+      const documentContext = chromaUrl
+        ? await buildDocumentRagContext({
+            workspaceId,
+            fileName: attachment.name,
+            fullText: extracted.text,
+            userQuestion: messages[messages.length - 1].content,
+            signal: request.signal,
+          })
+        : buildExtractedDocumentContext({
+            fileName: attachment.name,
+            text: extracted.text,
+            truncated: extracted.truncated,
+          });
+
+      attachmentForModel = {
+        name: attachment.name,
+        mimeType: "text/plain",
+        text: documentContext,
+      };
+    } catch (error) {
+      console.error("PDF text extraction skipped:", error);
     }
   }
 
@@ -137,6 +213,7 @@ export async function POST(request: Request) {
           await appendChatExchange({
             userId,
             conversationId,
+            workspaceId,
             userContent: messages[messages.length - 1].content,
             userAttachment: attachment
               ? {

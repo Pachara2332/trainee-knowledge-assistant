@@ -1,5 +1,5 @@
 export { auth as proxy } from "./lib/auth";
 
 export const config = {
-  matcher: ["/chat/:path*", "/upload/:path*"],
+  matcher: ["/chat/:path*", "/upload/:path*", "/agent/:path*"],
 };

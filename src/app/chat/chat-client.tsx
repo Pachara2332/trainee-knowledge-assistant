@@ -27,6 +27,12 @@ type Project = {
   files: ClientAttachment[];
 };
 
+type Workspace = {
+  id: string;
+  name: string;
+  role: "owner" | "admin" | "member";
+};
+
 function displayTitle(title: string) {
   return title || "New chat";
 }
@@ -445,6 +451,9 @@ export function ChatClient({
   name?: string | null;
   image?: string | null;
 }) {
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
+  const [workspaceError, setWorkspaceError] = useState("");
   const {
     activeConversation,
     conversations,
@@ -457,7 +466,7 @@ export function ChatClient({
     selectConversation,
     updateConversationMessages,
     updateDraftTitle,
-  } = useChatConversations();
+  } = useChatConversations(currentWorkspaceId);
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const [attachedFile, setAttachedFile] = useState<ClientAttachment | null>(null);
@@ -482,6 +491,44 @@ export function ChatClient({
     document.documentElement.classList.add(theme);
     window.localStorage.setItem("knowledge-assistant-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWorkspaces() {
+      try {
+        const response = await fetch("/api/workspaces");
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          throw new Error(body?.error ?? "Unable to load workspaces.");
+        }
+
+        const data = (await response.json()) as { workspaces: Workspace[] };
+
+        if (cancelled) {
+          return;
+        }
+
+        setWorkspaces(data.workspaces);
+        setCurrentWorkspaceId((current) => current ?? data.workspaces[0]?.id ?? null);
+        setWorkspaceError("");
+      } catch (error) {
+        if (!cancelled) {
+          setWorkspaceError(
+            error instanceof Error ? error.message : "Unable to load workspaces.",
+          );
+        }
+      }
+    }
+
+    loadWorkspaces();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [projects, setProjects] = useState<Project[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -604,6 +651,7 @@ export function ChatClient({
           messages: requestMessages,
           attachment: attachedFile,
           conversationId,
+          workspaceId: currentWorkspaceId,
         }),
       });
 
@@ -774,6 +822,26 @@ export function ChatClient({
         </nav>
 
         <div className="mt-7 grid gap-3 text-sm">
+          {!isSidebarCollapsed ? (
+            <label className="grid gap-2 px-3 text-xs font-semibold text-[#8d8d8d]">
+              Workspace
+              <select
+                className="h-10 rounded-md border border-[#262626] bg-[#101010] px-2 text-sm font-semibold text-white outline-none"
+                value={currentWorkspaceId ?? ""}
+                onChange={(event) => {
+                  setCurrentWorkspaceId(event.target.value || null);
+                  createNewConversation();
+                }}
+              >
+                {workspaces.map((workspace) => (
+                  <option key={workspace.id} value={workspace.id}>
+                    {workspace.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
           <div>
             {!isSidebarCollapsed ? (
               <div className="mb-2 flex items-center gap-2 px-3 text-xs font-semibold text-white">
@@ -980,9 +1048,9 @@ export function ChatClient({
           </>
         )}
 
-        {historyError || error ? (
+        {workspaceError || historyError || error ? (
           <div className="mx-auto mb-3 w-[min(100%-2rem,800px)] rounded-2xl border border-[#4d2424] bg-[#241010] px-4 py-3 text-sm font-semibold text-[#ffb4b4]">
-            {historyError || error}
+            {workspaceError || historyError || error}
           </div>
         ) : null}
       </section>

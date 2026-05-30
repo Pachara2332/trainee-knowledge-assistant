@@ -125,7 +125,7 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function useChatConversations() {
+export function useChatConversations(workspaceId: string | null) {
   const [conversationState, setConversationState] =
     useState<ConversationState>(createFallbackState);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
@@ -140,7 +140,9 @@ export function useChatConversations() {
 
       try {
         const data = await requestJson<{ conversations: ApiConversation[] }>(
-          "/api/conversations",
+          workspaceId
+            ? `/api/conversations?workspaceId=${encodeURIComponent(workspaceId)}`
+            : "/api/conversations",
         );
 
         if (cancelled) {
@@ -180,7 +182,7 @@ export function useChatConversations() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [workspaceId]);
 
   const activeConversation =
     conversationState.conversations.find(
@@ -225,7 +227,7 @@ export function useChatConversations() {
         "/api/conversations",
         {
           method: "POST",
-          body: JSON.stringify({ title }),
+          body: JSON.stringify({ title, workspaceId }),
         },
       );
       const persisted = toClientConversation(data.conversation);
@@ -281,6 +283,21 @@ export function useChatConversations() {
     }));
   }
 
+  async function deleteConversationInWorkspace(conversationId: string) {
+    if (isLocalConversationId(conversationId)) {
+      return;
+    }
+
+    await requestJson(
+      workspaceId
+        ? `/api/conversations/${conversationId}?workspaceId=${encodeURIComponent(workspaceId)}`
+        : `/api/conversations/${conversationId}`,
+      {
+        method: "DELETE",
+      },
+    );
+  }
+
   async function deleteConversation(conversationId: string) {
     setConversationState((current) => {
       const remaining = current.conversations.filter(
@@ -301,9 +318,7 @@ export function useChatConversations() {
     });
 
     if (!isLocalConversationId(conversationId)) {
-      await requestJson(`/api/conversations/${conversationId}`, {
-        method: "DELETE",
-      });
+      await deleteConversationInWorkspace(conversationId);
     }
   }
 

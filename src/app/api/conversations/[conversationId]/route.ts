@@ -1,4 +1,9 @@
 import { auth } from "../../../../lib/auth";
+import {
+  WorkspacePermissionError,
+  assertMember,
+  getUserWorkspaces,
+} from "../../../../lib/workspace/workspace";
 import { deleteConversationForUser } from "../../../../repositories/chat-history";
 
 export const runtime = "nodejs";
@@ -10,7 +15,7 @@ function getUserId(session: { user?: { id?: unknown } } | null) {
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ conversationId: string }> },
 ) {
   const session = await auth();
@@ -22,9 +27,29 @@ export async function DELETE(
 
   try {
     const { conversationId } = await params;
-    await deleteConversationForUser({ userId, conversationId });
+    const url = new URL(request.url);
+    let workspaceId =
+      url.searchParams.get("workspaceId")?.trim() ||
+      url.searchParams.get("ws")?.trim() ||
+      "";
+
+    if (!workspaceId) {
+      const workspaces = await getUserWorkspaces(userId);
+      workspaceId = workspaces[0]?.id ?? "";
+    }
+
+    if (!workspaceId) {
+      return Response.json({ error: "Workspace is required." }, { status: 400 });
+    }
+
+    await assertMember(workspaceId, userId);
+    await deleteConversationForUser({ userId, conversationId, workspaceId });
     return Response.json({ ok: true });
   } catch (error) {
+    if (error instanceof WorkspacePermissionError) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     console.error("[conversations] delete failed", error);
     return Response.json(
       { error: "Unable to delete conversation." },

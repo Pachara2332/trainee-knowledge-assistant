@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { getPool, type PoolLike } from "../db/pool";
+import { createWorkspace } from "./workspace/workspace";
 
 type UserRecord = {
   id: string;
@@ -11,6 +12,11 @@ type UserRecord = {
 const globalForPg = globalThis as typeof globalThis & {
   usersTableReady?: boolean;
 };
+
+function personalWorkspaceName(name: string | undefined | null, email: string) {
+  const label = name?.trim() || email.split("@")[0] || "Personal";
+  return `${label}'s workspace`;
+}
 
 async function ensureUsersTable(pool: PoolLike) {
   if (globalForPg.usersTableReady) {
@@ -79,10 +85,16 @@ export async function createUser({
   const passwordHash = await bcrypt.hash(password, 12);
 
   try {
-    await pool.query(
-      "INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3)",
+    const result = await pool.query<UserRecord>(
+      "INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, password_hash, name",
       [normalizedEmail, passwordHash, name?.trim() || null],
     );
+    const user = result.rows[0];
+    await createWorkspace(
+      user.id,
+      personalWorkspaceName(user.name, user.email),
+    );
+    return user;
   } catch (error) {
     if (
       error &&
@@ -118,6 +130,10 @@ export async function createOAuthUser({
     const result = await pool.query<UserRecord>(
       "INSERT INTO users (email, password_hash, name) VALUES ($1, NULL, $2) RETURNING id, email, password_hash, name",
       [normalizedEmail, name?.trim() || null],
+    );
+    await createWorkspace(
+      result.rows[0].id,
+      personalWorkspaceName(result.rows[0].name, result.rows[0].email),
     );
     return result.rows[0];
   } catch (error) {

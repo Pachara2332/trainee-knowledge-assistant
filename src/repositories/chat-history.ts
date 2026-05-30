@@ -1,5 +1,10 @@
 import type { ChatAttachment } from "../lib/chat/types";
 import { getPool, type PoolLike } from "../db/pool";
+import {
+  ensureDefaultWorkspaceForUser,
+  ensureConversationWorkspaceSchema,
+  ensureWorkspaceTables,
+} from "../lib/db/schema";
 
 export type PersistedTokenUsage = {
   promptTokens: number;
@@ -48,7 +53,6 @@ type MessageRow = {
   created_at: Date;
 };
 
-const DEFAULT_WORKSPACE_ID = "default";
 const MAX_CONVERSATIONS = 20;
 const MAX_MESSAGES_PER_CONVERSATION = 40;
 
@@ -99,11 +103,12 @@ async function ensureChatHistoryTables(pool: PoolLike) {
   }
 
   await pool.query("CREATE EXTENSION IF NOT EXISTS pgcrypto");
+  await ensureWorkspaceTables(pool);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS conversations (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      workspace_id TEXT NOT NULL DEFAULT 'default',
+      workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       title TEXT NOT NULL DEFAULT 'New Chat',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -124,6 +129,7 @@ async function ensureChatHistoryTables(pool: PoolLike) {
   await pool.query(
     "CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)",
   );
+  await ensureConversationWorkspaceSchema(pool);
   await pool.query(
     "CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id, created_at ASC)",
   );
@@ -142,16 +148,16 @@ async function requirePool() {
   return pool;
 }
 
-async function getConversationRows(pool: PoolLike, userId: string) {
+async function getConversationRows(pool: PoolLike, workspaceId: string) {
   const result = await pool.query<ConversationRow>(
     `
       SELECT id, user_id, workspace_id, title, created_at, updated_at
       FROM conversations
-      WHERE user_id = $1
+      WHERE workspace_id = $1
       ORDER BY updated_at DESC
       LIMIT $2
     `,
-    [userId, MAX_CONVERSATIONS],
+    [workspaceId, MAX_CONVERSATIONS],
   );
 
   return result.rows;
@@ -184,9 +190,17 @@ async function getMessagesForConversationIds(pool: PoolLike, conversationIds: st
   return result.rows.map(mapMessage);
 }
 
-export async function listConversationsForUser(userId: string) {
+export async function listConversationsForUser({
+  userId,
+  workspaceId,
+}: {
+  userId: string;
+  workspaceId?: string;
+}) {
   const pool = await requirePool();
-  const conversations = await getConversationRows(pool, userId);
+  const resolvedWorkspaceId =
+    workspaceId ?? (await ensureDefaultWorkspaceForUser(pool, userId));
+  const conversations = await getConversationRows(pool, resolvedWorkspaceId);
   const messages = await getMessagesForConversationIds(
     pool,
     conversations.map((conversation) => conversation.id),
@@ -203,20 +217,24 @@ export async function listConversationsForUser(userId: string) {
 export async function createConversationForUser({
   userId,
   title = "New Chat",
-  workspaceId = DEFAULT_WORKSPACE_ID,
+  workspaceId,
 }: {
   userId: string;
   title?: string;
   workspaceId?: string;
 }) {
   const pool = await requirePool();
+  const resolvedWorkspaceId =
+    workspaceId && workspaceId !== "default"
+      ? workspaceId
+      : await ensureDefaultWorkspaceForUser(pool, userId);
   const result = await pool.query<ConversationRow>(
     `
       INSERT INTO conversations (user_id, workspace_id, title)
       VALUES ($1, $2, $3)
       RETURNING id, user_id, workspace_id, title, created_at, updated_at
     `,
-    [userId, workspaceId, toTitle(title)],
+    [userId, resolvedWorkspaceId, toTitle(title)],
   );
 
   return mapConversation(result.rows[0], []);
@@ -225,20 +243,25 @@ export async function createConversationForUser({
 export async function deleteConversationForUser({
   userId,
   conversationId,
+  workspaceId,
 }: {
   userId: string;
   conversationId: string;
+  workspaceId?: string;
 }) {
   const pool = await requirePool();
+  const resolvedWorkspaceId =
+    workspaceId ?? (await ensureDefaultWorkspaceForUser(pool, userId));
   await pool.query(
-    "DELETE FROM conversations WHERE id = $1 AND user_id = $2",
-    [conversationId, userId],
+    "DELETE FROM conversations WHERE id = $1 AND workspace_id = $2",
+    [conversationId, resolvedWorkspaceId],
   );
 }
 
 export async function appendChatExchange({
   userId,
   conversationId,
+  workspaceId,
   userContent,
   userAttachment,
   assistantContent,
@@ -247,6 +270,7 @@ export async function appendChatExchange({
 }: {
   userId: string;
   conversationId: string;
+  workspaceId?: string;
   userContent: string;
   userAttachment: ChatAttachment | null;
   assistantContent: string;
@@ -254,14 +278,16 @@ export async function appendChatExchange({
   tokenUsage: PersistedTokenUsage | null;
 }) {
   const pool = await requirePool();
+  const resolvedWorkspaceId =
+    workspaceId ?? (await ensureDefaultWorkspaceForUser(pool, userId));
   const conversation = await pool.query<ConversationRow>(
     `
       SELECT id, user_id, workspace_id, title, created_at, updated_at
       FROM conversations
-      WHERE id = $1 AND user_id = $2
+      WHERE id = $1 AND workspace_id = $2
       LIMIT 1
     `,
-    [conversationId, userId],
+    [conversationId, resolvedWorkspaceId],
   );
 
   if (conversation.rows.length === 0) {

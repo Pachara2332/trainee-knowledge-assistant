@@ -74,37 +74,62 @@ PostgreSQL Database
 ### Suggested Schema Structure
 
 ```sql
--- Conversations Table
+CREATE TYPE workspace_role AS ENUM ('owner', 'admin', 'member');
+
+-- Workspace tenant boundary
+CREATE TABLE workspaces (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE workspace_members (
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role workspace_role NOT NULL DEFAULT 'member',
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (workspace_id, user_id)
+);
+
 CREATE TABLE conversations (
-    id VARCHAR(255) PRIMARY KEY,
-    workspace_id VARCHAR(255) REFERENCES workspaces(id) ON DELETE CASCADE,
-    user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL DEFAULT 'New Chat',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Messages Table
 CREATE TABLE messages (
-    id VARCHAR(255) PRIMARY KEY,
-    conversation_id VARCHAR(255) REFERENCES conversations(id) ON DELETE CASCADE,
-    role VARCHAR(50) NOT NULL, -- 'user' | 'assistant'
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
     content TEXT NOT NULL,
-    provider VARCHAR(100), -- 'Gemini' | 'Together' | 'Cerebras' | 'Groq' | 'OpenAI'
-    token_usage JSONB, -- { "promptTokens": X, "completionTokens": Y, "totalTokens": Z }
-    attachment_name VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    provider TEXT,
+    token_usage JSONB,
+    attachments JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Documents Table
-CREATE TABLE documents (
-    id VARCHAR(255) PRIMARY KEY,
-    workspace_id VARCHAR(255) REFERENCES workspaces(id) ON DELETE CASCADE,
-    filename VARCHAR(255) NOT NULL,
-    storage_path VARCHAR(500) NOT NULL,
-    status VARCHAR(50) NOT NULL, -- 'queued' | 'processing' | 'indexed' | 'failed'
-    uploaded_by VARCHAR(255) REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE agent_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    markdown TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE agent_tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    detail TEXT,
+    status TEXT NOT NULL DEFAULT 'open',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ```
 
